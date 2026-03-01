@@ -17,7 +17,7 @@ import 'reactflow/dist/style.css';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { useMindMap, useListMindMaps } from '@/hooks/useMindMap';
 import { Button } from '@/components/ui/button';
-import { Save, Plus, Loader2, ChevronLeft, MousePointer2, Type, Share2, Check, CloudCheck, CloudUpload } from 'lucide-react';
+import { Save, Plus, Loader2, ArrowLeft, MousePointer2, Type, Share2, Check, CloudCheck, CloudUpload } from 'lucide-react';
 import { MarkdownNode } from './nodes/MarkdownNode';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -47,11 +47,17 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     setEdges,
     addNode,
     setPendingConnection,
-    version
+    version,
+    setIsSaving
   } = useMindMapStore();
 
   const { data: mapData, save, isLoading } = useMindMap(mapId);
   const { data: allMaps } = useListMindMaps();
+
+  // Sync mutation status with global store
+  useEffect(() => {
+    setIsSaving(save.isPending);
+  }, [save.isPending, setIsSaving]);
   
   const [title, setTitle] = useState('New Mind Map');
   const [copied, setCopied] = useState(false);
@@ -198,14 +204,14 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
   if (isLoading && isInitialLoad.current) {
     return (
-      <div className="flex h-[calc(100vh-3.5rem)] w-full items-center justify-center bg-background">
+      <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] w-full bg-background relative overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] w-full bg-background relative overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -222,6 +228,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
         snapToGrid
         snapGrid={[20, 20]}
         className={cn("bg-background", theme === 'dark' ? 'dark' : '')}
+        proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={25} size={1} color={theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'} />
         <Controls showInteractive={false} />
@@ -231,34 +238,30 @@ function MindMapContent({ mapId }: { mapId?: string }) {
           nodeStrokeWidth={3}
           maskColor={theme === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'}
         />
-        <Panel position="top-left" className="m-6 flex items-center gap-4">
-          <Link href="/">
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-card/80 backdrop-blur-xl border-border/40 shadow-xl hover:scale-105 transition-all">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Card className="flex items-center gap-2 p-1.5 pl-4 bg-card/80 backdrop-blur-xl border-border/40 shadow-xl rounded-2xl">
+        <Panel position="top-left" className="m-4">
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent/20 transition-all group active:scale-95">
+                <ArrowLeft className="h-6 w-6 transition-transform group-hover:-translate-x-1" />
+              </Button>
+            </Link>
             <Input 
               type="text" 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
-              className="h-8 w-48 border-none bg-transparent text-sm font-black focus-visible:ring-0 px-1" 
-              placeholder="Map Title" 
+              className="h-10 w-64 border-none bg-transparent text-xl font-bold focus-visible:ring-0 px-2 placeholder:text-muted-foreground/30" 
+              placeholder="Untitled Map" 
               disabled={!isMapReady}
             />
-            <div className="h-4 w-[1px] bg-border/60 mx-1" />
-            <div className="flex items-center px-2 gap-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground min-w-[80px] justify-center">
-              {save.isPending ? <><CloudUpload className="h-3 w-3 animate-bounce text-primary" /><span className="animate-pulse">Syncing</span></> : <><CloudCheck className="h-3 w-3 text-green-500" /><span>Saved</span></>}
-            </div>
-          </Card>
+          </div>
         </Panel>
         <Panel position="top-right" className="m-6 flex gap-3">
-          <Card className="flex p-1.5 gap-1.5 bg-card/80 backdrop-blur-xl border-border/40 shadow-xl rounded-xl">
+          <Card className="flex p-1 gap-0.5 bg-card/80 backdrop-blur-xl border-border/40 shadow-xl rounded-xl items-center">
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-accent/50" title="Reset View" onClick={() => fitView({ duration: 800, padding: 0.8 })}><MousePointer2 className="h-4 w-4" /></Button>
             <Button onClick={onAddNode} variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-primary hover:bg-primary/10" title="Add Node"><Type className="h-4 w-4 stroke-[2.5px]" /></Button>
-            <div className="w-[1px] h-4 bg-border/60 self-center mx-1" />
+            <div className="w-[1px] h-2 bg-border/60 mx-1" />
             <Button onClick={onShare} variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-accent/50" title="Copy URL"><Share2 className="h-4 w-4" /></Button>
-            <div className="w-[1px] h-4 bg-border/60 self-center mx-1" />
+            <div className="w-[1px] h-2 bg-border/60 mx-1" />
             <Button onClick={() => save.mutate({ nodes, edges, title })} disabled={save.isPending || !isMapReady} variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-accent/50" title="Manual Save">{save.isPending ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Save className="h-4 w-4" />}</Button>
           </Card>
         </Panel>

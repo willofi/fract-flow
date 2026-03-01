@@ -27,6 +27,8 @@ interface MindMapState {
   setNodeColor: (nodeId: string, color: string) => void;
   pendingConnection: { nodeId: string; handleId: string } | null;
   setPendingConnection: (connection: { nodeId: string; handleId: string } | null) => void;
+  isSaving: boolean;
+  setIsSaving: (isSaving: boolean) => void;
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => ({
@@ -34,6 +36,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   edges: [],
   version: 0,
   pendingConnection: null,
+  isSaving: false,
   onNodesChange: (changes: NodeChange[]) => {
     const nextNodes = applyNodeChanges(changes, get().nodes);
     const hasIntentionalChange = changes.some(c => c.type === 'position' || c.type === 'remove' || c.type === 'add');
@@ -95,5 +98,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
   setPendingConnection: (pendingConnection) => {
     set({ pendingConnection });
+  },
+  setIsSaving: (isSaving: boolean) => {
+    set({ isSaving });
   },
 }));
