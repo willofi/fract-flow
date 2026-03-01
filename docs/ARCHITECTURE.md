@@ -28,6 +28,15 @@ MindMap AI는 UI 응답성과 데이터 영속성 간의 균형을 맞추기 위
 
 ---
 
+## ☁️ 글로벌 상태 동기화 (isSaving)
+
+사용자가 현재 데이터가 안전하게 클라우드에 동기화되었는지 즉각적으로 알 수 있도록 **헤더 기반 상태 표시기**를 구현했습니다.
+
+- **데이터 동기화**: `useMindMap` 훅의 `save.isPending` 상태를 `useMindMapStore`의 `isSaving` 전역 상태와 동기화합니다.
+- **헤더 알림**: 전역 상태를 구독하는 `Header` 컴포넌트는 로고 바로 옆에 `Syncing` (애니메이션 포함) 또는 `Saved` 상태를 실시간으로 표시합니다. 이를 통해 사용자는 현재 작업 중인 데이터의 안전성을 한눈에 파악할 수 있습니다.
+
+---
+
 ## 📊 데이터 스키마
 
 React Flow 노드와 엣지의 동적인 특성을 지원하기 위해 PostgreSQL의 유연한 JSONB 스키마를 사용합니다:
@@ -35,6 +44,7 @@ React Flow 노드와 엣지의 동적인 특성을 지원하기 위해 PostgreSQ
 ```sql
 CREATE TABLE maps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id), -- 소유자 식별
   title TEXT NOT NULL,
   nodes JSONB NOT NULL DEFAULT '[]', -- React Flow Node 객체
   edges JSONB NOT NULL DEFAULT '[]', -- React Flow Edge 객체
@@ -61,4 +71,4 @@ CREATE TABLE maps (
 
 ## 📡 기술 통합
 - **TanStack Query**: 캐싱 레이어를 관리합니다. 사용자가 페이지를 이동하더라도 맵 데이터는 캐시에서 즉시 제공되며 백그라운드에서 최신 상태로 갱신됩니다.
-- **Supabase SSR**: 향후 인증 및 보안 데이터 액세스를 위해 Next.js App Router와의 원활한 통합을 제공합니다.
+- **Supabase SSR**: Next.js App Router와 통합되어 인증된 사용자만 자신의 마인드맵에 접근할 수 있도록 보안 정책(RLS)을 강화했습니다.
