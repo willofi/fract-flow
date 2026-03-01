@@ -43,6 +43,9 @@ CONTEXT.md
 # vercel
 .vercel
 
+# screenshots
+/screenshot/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
