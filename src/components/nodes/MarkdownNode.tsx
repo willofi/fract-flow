@@ -4,6 +4,13 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps, NodeResizer } from 'reactflow';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import Editor from 'react-simple-code-editor';
+import { highlight, languages } from 'prismjs';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-markdown';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { cn } from '@/lib/utils';
 import {
@@ -191,17 +198,71 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
             {/* INTERIOR CONTENT: Drag zone */}
             <div className="flex-1 overflow-hidden pointer-events-none flex items-center justify-center p-1">
               {isEditing ? (
-                <textarea
-                  ref={textareaRef}
-                  className="w-full h-full bg-transparent border-none focus:ring-0 text-[8px] font-medium resize-none text-foreground leading-tight p-0 outline-none pointer-events-auto text-center"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  onBlur={onBlur}
-                  placeholder="..."
-                />
+                <div className="w-full h-full pointer-events-auto overflow-auto scrollbar-hide flex items-start justify-center pt-2">
+                  <Editor
+                    value={content}
+                    onValueChange={code => setContent(code)}
+                    highlight={code => highlight(code, languages.markdown, 'markdown')}
+                    padding={4}
+                    onBlur={onBlur}
+                    style={{
+                      fontFamily: '"Fira code", "Fira Mono", monospace',
+                      fontSize: '8px',
+                      width: '100%',
+                      minHeight: '100%',
+                      textAlign: 'left',
+                      backgroundColor: 'transparent', // 편집 시 배경 투명 (노드 색상 유지)
+                      color: 'inherit',
+                      lineHeight: '1.2',
+                    }}
+                    textareaClassName="focus:ring-0 outline-none !p-1 text-foreground"
+                    preClassName="!p-1"
+                  />
+                </div>
               ) : (
-                <div className="prose prose-xs dark:prose-invert max-w-none break-words leading-tight tracking-tight pointer-events-auto text-[8px] font-semibold text-center px-1">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{content || '*Empty*'}</ReactMarkdown>
+                <div className="prose prose-xs dark:prose-invert max-w-none break-words leading-tight tracking-tight pointer-events-auto text-[8px] font-semibold px-1 w-full h-full flex flex-col items-center justify-center">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code({ node, inline, className, children, ...props }: any) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline) {
+                          return (
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match ? match[1] : 'javascript'}
+                              PreTag="div"
+                              className="rounded-md my-1 text-left shadow-sm w-full"
+                              customStyle={{
+                                fontSize: '8px',
+                                lineHeight: '1.2',
+                                padding: '6px',
+                                margin: '2px 0',
+                                background: '#1e1e1e',
+                              }}
+                              codeTagProps={{
+                                style: {
+                                  fontSize: '8px', // 내부 코드 태그 크기 강제 고정
+                                  lineHeight: '1.2',
+                                  fontFamily: 'inherit',
+                                }
+                              }}
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          );
+                        }
+                        return (
+                          <code className={cn("bg-[#1e1e1e] text-[#ce9178] px-0.5 rounded-sm font-mono text-[8px]", className)} {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+                    }}
+                  >
+                    {content || '*Empty*'}
+                  </ReactMarkdown>
                 </div>
               )}
             </div>
@@ -213,13 +274,13 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
           <div className="grid grid-cols-4 gap-2">
             {[
               { name: 'Default', value: 'var(--card)' },
-              { name: 'Blue', value: 'oklch(0.95 0.05 250)' },
-              { name: 'Green', value: 'oklch(0.95 0.05 150)' },
-              { name: 'Yellow', value: 'oklch(0.95 0.05 80)' },
-              { name: 'Orange', value: 'oklch(0.95 0.05 45)' },
-              { name: 'Red', value: 'oklch(0.95 0.05 25)' },
-              { name: 'Purple', value: 'oklch(0.95 0.05 300)' },
-              { name: 'Pink', value: 'oklch(0.95 0.05 340)' },
+              { name: 'Blue', value: 'var(--node-blue)' },
+              { name: 'Green', value: 'var(--node-green)' },
+              { name: 'Yellow', value: 'var(--node-yellow)' },
+              { name: 'Orange', value: 'var(--node-orange)' },
+              { name: 'Red', value: 'var(--node-red)' },
+              { name: 'Purple', value: 'var(--node-purple)' },
+              { name: 'Pink', value: 'var(--node-pink)' },
             ].map((c) => (
               <ContextMenuItem key={c.name} onClick={() => setNodeColor(id, c.value)} className="h-9 w-9 rounded-xl border border-border/40 p-0 hover:scale-110 transition-transform cursor-pointer" style={{ backgroundColor: c.value }} />
             ))}

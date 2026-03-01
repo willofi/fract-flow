@@ -53,6 +53,15 @@
   --input: oklch(0.85 0.02 260);
   --ring: oklch(0.3 0.02 260 / 30%);
   --radius: 0.75rem;
+
+  /* Node Palette - Light Mode */
+  --node-blue: oklch(0.95 0.05 250);
+  --node-green: oklch(0.95 0.05 150);
+  --node-yellow: oklch(0.95 0.05 80);
+  --node-orange: oklch(0.95 0.05 45);
+  --node-red: oklch(0.95 0.05 25);
+  --node-purple: oklch(0.95 0.05 300);
+  --node-pink: oklch(0.95 0.05 340);
 }
 
 .dark {
@@ -75,6 +84,15 @@
   --border: oklch(0.32 0.03 260);
   --input: oklch(0.32 0.03 260);
   --ring: oklch(0.8 0.01 260 / 40%);
+
+  /* Node Palette - Dark Mode (More saturated & darker for white text) */
+  --node-blue: oklch(0.3 0.1 250);
+  --node-green: oklch(0.3 0.1 150);
+  --node-yellow: oklch(0.3 0.1 80);
+  --node-orange: oklch(0.3 0.1 45);
+  --node-red: oklch(0.3 0.1 25);
+  --node-purple: oklch(0.3 0.1 300);
+  --node-pink: oklch(0.3 0.1 340);
 }
 
 @layer base {
@@ -207,6 +225,11 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.05);
   cursor: default !important;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.dark .node-container {
+  border-color: oklch(0.4 0.02 260); /* 다크 모드에서의 기본 테두리 강화 */
 }
 
 .node-container.selected {
@@ -232,3 +255,109 @@
   margin-top: 0.3em;
   margin-bottom: 0.3em;
 }
+
+/* Ensure code alignment doesn't get messed up by prose */
+.prose pre {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+  margin: 0.5em 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+.prose code {
+  color: inherit !important;
+  font-weight: 500 !important;
+}
+
+/* Custom Prism Syntax Highlighting (No backgrounds for tokens, only container) */
+.token {
+  background: none !important;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+	color: #93a1a1; /* slategray */
+}
+
+.token.punctuation {
+	color: #586e75;
+}
+
+.token.namespace {
+	opacity: .7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+	color: #268bd2; /* blue */
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+	color: #2aa198; /* cyan */
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+	color: #af8700; /* yellow */
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+	color: #cb4b16; /* orange */
+}
+
+.token.function,
+.token.class-name {
+	color: #b58900; /* yellow */
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+	color: #cb4b16; /* orange */
+}
+
+.token.important,
+.token.bold {
+	font-weight: bold;
+}
+.token.italic {
+	font-style: italic;
+}
+
+.token.entity {
+	cursor: help;
+}
+
+/* Markdown specific colors */
+.token.title {
+  color: var(--primary);
+  font-weight: bold;
+}
+.token.list {
+  color: var(--primary);
+}
+.token.code {
+  color: #2aa198;
+}
+.token.hr {
+  color: var(--border);
+}
+
