@@ -19,23 +19,38 @@ export function useMindMap(mapId?: string) {
       return data;
     },
     enabled: !!mapId,
-    staleTime: 0, // Ensure we always get fresh data when navigating
+    staleTime: 0,
   });
 
   const saveMutation = useMutation({
     mutationFn: async ({ nodes, edges, title }: { nodes: Node[], edges: Edge[], title: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Authentication required to save mind maps');
+
       if (!mapId) {
+        // Create new map
         const { data, error } = await supabase
           .from('maps')
-          .insert({ nodes, edges, title })
+          .insert({ 
+            nodes, 
+            edges, 
+            title, 
+            user_id: user.id // 명시적으로 사용자 ID 할당
+          })
           .select()
           .single();
         if (error) throw error;
         return data;
       } else {
+        // Update existing map
         const { data, error } = await supabase
           .from('maps')
-          .update({ nodes, edges, title, updated_at: new Date().toISOString() })
+          .update({ 
+            nodes, 
+            edges, 
+            title, 
+            updated_at: new Date().toISOString() 
+          })
           .eq('id', mapId)
           .select()
           .single();
@@ -44,7 +59,6 @@ export function useMindMap(mapId?: string) {
       }
     },
     onSuccess: (data) => {
-      // Update cache for both the specific map and the list
       queryClient.setQueryData(['mind-map', data.id], data);
       queryClient.invalidateQueries({ queryKey: ['mind-maps'] });
     },
@@ -71,10 +85,15 @@ export function useListMindMaps() {
   return useQuery({
     queryKey: ['mind-maps'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('maps')
         .select('id, title, updated_at, created_at')
+        .eq('user_id', user.id) // 본인 소유의 마인드맵만 조회
         .order('updated_at', { ascending: false });
+      
       if (error) throw error;
       return data;
     },
