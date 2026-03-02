@@ -22,8 +22,8 @@ import { MarkdownNode } from './nodes/MarkdownNode';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useTheme } from 'next-themes';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
 const nodeTypes = {
@@ -65,14 +65,14 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   const { project, fitView } = useReactFlow();
   const router = useRouter();
   
-  const isInitialLoad = useRef(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const lastSavedVersion = useRef(version);
   const lastSavedTitle = useRef(title);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // RESET LOGIC: When mapId changes, force a fresh start
   useEffect(() => {
-    isInitialLoad.current = true;
+    setIsInitialLoad(true);
     setPendingConnection(null);
     setTitle('Loading...'); // Visual reset
     setNodes([]); // Clear stale nodes
@@ -81,7 +81,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
   // AUTO-SAVE LOGIC: Only trigger if structural version or title actually changed
   useEffect(() => {
-    if (isInitialLoad.current) return;
+    if (isInitialLoad) return;
 
     // Check if anything meaningful changed since last save
     if (version === lastSavedVersion.current && title === lastSavedTitle.current) {
@@ -107,11 +107,11 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, [version, title, mapId, router, save, nodes, edges]);
+  }, [version, title, mapId, router, save, nodes, edges, isInitialLoad]);
 
   // INITIAL DATA LOADING
   useEffect(() => {
-    if (!isInitialLoad.current) return;
+    if (!isInitialLoad) return;
 
     if (mapData && mapId) {
       // Ensure the loaded data matches the current mapId
@@ -122,7 +122,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       setTitle(mapData.title);
       lastSavedVersion.current = version;
       lastSavedTitle.current = mapData.title;
-      isInitialLoad.current = false;
+      setIsInitialLoad(false);
       setTimeout(() => fitView({ padding: 0.8 }), 100);
     } else if (!mapId && !isLoading && allMaps !== undefined) {
       // New map initialization
@@ -141,10 +141,10 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       setEdges([]);
       setTitle(nextTitle);
       lastSavedTitle.current = nextTitle;
-      isInitialLoad.current = false;
+      setIsInitialLoad(false);
       setTimeout(() => fitView({ padding: 0.8 }), 100);
     }
-  }, [mapData, mapId, isLoading, allMaps, setNodes, setEdges, fitView, version]);
+  }, [mapData, mapId, isLoading, allMaps, setNodes, setEdges, fitView, version, isInitialLoad]);
 
   // AUTO-ROUTING
   useEffect(() => {
@@ -200,9 +200,9 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     addNode(newNode);
   }, [addNode, project]);
 
-  const isMapReady = !isLoading || !isInitialLoad.current;
+  const isMapReady = !isLoading || !isInitialLoad;
 
-  if (isLoading && isInitialLoad.current) {
+  if (isLoading && isInitialLoad) {
     return (
       <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />

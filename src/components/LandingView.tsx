@@ -1,10 +1,14 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, Sparkles, Zap, Shield, Users, ArrowUpRight, FileText, Share2, MousePointer2, Code2, ChevronDown, ChevronUp } from 'lucide-react';
-import Link from 'next/link';
+import { FractFlowIcon } from '@/components/icons/FractFlowIcon';
+import { Sparkles, Zap, Shield, Users, ArrowUpRight, FileText, Share2, MousePointer2, Code2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export function LandingView() {
+  const t = useTranslations('landing');
+  
   const scrollToShowcase = () => {
     const element = document.getElementById('showcase');
     element?.scrollIntoView({ behavior: 'smooth' });
@@ -20,22 +24,26 @@ export function LandingView() {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-[0.3em] mb-4 border border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                 <Sparkles className="h-4 w-4" />
-                <span>The Future of Visualization</span>
+                <span>{t('hero.future')}</span>
               </div>
               <h1 className="text-5xl font-black tracking-tight sm:text-7xl md:text-8xl lg:text-9xl/none animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-                Map Your <span className="relative inline-block">
-                  <span className="text-primary italic relative z-10">Vision</span>
-                  <span className="absolute bottom-[-2%] left-0 w-full h-[11%] bg-primary/40 -skew-x-12 z-0" />
-                </span> to Infinity
+                {t.rich('hero.title', {
+                  vision: (chunks) => (
+                    <span className="relative inline-block">
+                      <span className="text-primary italic relative z-10">{chunks}</span>
+                      <span className="absolute bottom-[-2%] left-0 w-full h-[11%] bg-primary/40 -skew-x-12 z-0" />
+                    </span>
+                  )
+                })}
               </h1>
               <p className="mx-auto max-w-[850px] text-muted-foreground text-xl md:text-2xl lg:text-3xl leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-                The high-performance, AI-powered workspace designed for modern product strategy, complex research, and creative brainstorming.
+                {t('hero.description')}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
               <Link href="/login" className="w-full sm:w-auto">
                 <Button size="lg" className="w-full sm:w-[240px] rounded-2xl h-20 text-2xl font-black shadow-[0_20px_50px_-10px_rgba(var(--primary-rgb),0.4)] hover:scale-105 active:scale-95 transition-all duration-300">
-                  Get Started
+                  {t('hero.get_started')}
                   <ArrowUpRight className="ml-1 h-7 w-7 stroke-[3px]" />
                 </Button>
               </Link>
@@ -45,12 +53,12 @@ export function LandingView() {
                 className="w-full sm:w-[240px] rounded-2xl h-20 text-2xl font-bold hover:bg-secondary/50 border-2 transition-all duration-300"
                 onClick={scrollToShowcase}
               >
-                Watch Demo
+                {t('hero.watch_demo')}
               </Button>
             </div>
           </div>
         </div>
-        <ScrollGuide direction="down" label="Capabilities" />
+        <ScrollGuide direction="down" label={t('features.capabilities')} />
       </section>
 
       {/* Page 2: Features Section */}
@@ -60,48 +68,52 @@ export function LandingView() {
         
         <div className="container px-4 md:px-8 mx-auto relative z-10 -translate-y-12">
           <div className="flex flex-col items-center text-center mb-20 space-y-4">
-            <h2 className="text-sm font-black uppercase tracking-[0.4em] text-primary">Capabilities</h2>
-            <h3 className="text-4xl md:text-6xl font-black tracking-tight">Everything You Need to <br /><span className="text-muted-foreground">Master Your Workflow</span></h3>
+            <h2 className="text-sm font-black uppercase tracking-[0.4em] text-primary">{t('features.capabilities')}</h2>
+            <h3 className="text-4xl md:text-6xl font-black tracking-tight">
+              {t.rich('features.title', {
+                master: (chunks) => <span className="text-muted-foreground">{chunks}</span>
+              })}
+            </h3>
             <p className="max-w-2xl text-muted-foreground text-lg md:text-xl font-medium">
-              Our workspace combines the simplicity of mind-mapping with the power of modern engineering tools.
+              {t('features.description')}
             </p>
           </div>
 
           <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <FeatureCard 
               icon={<Zap className="h-8 w-8" />}
-              title="Instant Nodes"
-              description="Expand your map instantly with keyboard shortcuts and smooth drag-and-drop interactions."
+              title={t('features.f1.title')}
+              description={t('features.f1.description')}
             />
             <FeatureCard 
               icon={<FileText className="h-8 w-8" />}
-              title="Markdown Ready"
-              description="Document your ideas with rich text, nested lists, and multi-line markdown blocks inside any node."
+              title={t('features.f2.title')}
+              description={t('features.f2.description')}
             />
             <FeatureCard 
               icon={<Shield className="h-8 w-8" />}
-              title="Enterprise Security"
-              description="Secure your intellectual property with Supabase Auth and private database isolation."
+              title={t('features.f3.title')}
+              description={t('features.f3.description')}
             />
             <FeatureCard 
               icon={<Users className="h-8 w-8" />}
-              title="Dynamic Scaling"
-              description="Built on a high-performance engine capable of handling thousands of nodes without lag."
+              title={t('features.f4.title')}
+              description={t('features.f4.description')}
             />
           </div>
         </div>
-        <ScrollGuide direction="down" label="Showcase" />
+        <ScrollGuide direction="down" label={t('showcase.title')} />
       </section>
 
       {/* Page 3: Showcase Section */}
       <section id="showcase" className="w-full h-full snap-start snap-always flex flex-col justify-center bg-background relative overflow-hidden">
-        <ScrollGuide direction="up" label="Features" />
+        <ScrollGuide direction="up" label={t('features.capabilities')} />
         <div className="container px-4 md:px-8 mx-auto relative">
           <div className="flex flex-col items-center justify-center space-y-6 text-center">
             <div className="space-y-3 max-w-3xl">
-              <h2 className="text-4xl font-black tracking-tight sm:text-7xl">Powerful Editor Experience</h2>
+              <h2 className="text-4xl font-black tracking-tight sm:text-7xl">{t('showcase.title')}</h2>
               <p className="text-muted-foreground text-xl md:text-2xl leading-relaxed font-medium">
-                Experience a high-performance workspace with auto-layout, real-time sync, and intelligent connections.
+                {t('showcase.description')}
               </p>
             </div>
             
@@ -125,9 +137,9 @@ export function LandingView() {
 
               <div className="relative w-full h-full z-20">
                 <div className="absolute top-[3%] left-1/2 -translate-x-1/2 bg-background border-2 border-border/80 px-12 py-6 rounded-[2.5rem] shadow-2xl transition-all group-hover:border-primary/40 group-hover:scale-105 duration-500 z-30">
-                  <span className="text-3xl font-black tracking-tight flex items-center gap-3">
-                    <BrainCircuit className="h-8 w-8 text-primary" />
-                    Product Strategy
+                  <span className="text-3xl font-black tracking-tight flex items-center gap-3 uppercase">
+                    <FractFlowIcon className="h-8 w-8 text-primary" />
+                    FractFlow
                   </span>
                 </div>
 
@@ -158,49 +170,54 @@ export function LandingView() {
                     </div>
                   </div>
                   <div className="bg-[#121212] p-7 rounded-2xl font-mono text-[13px] leading-relaxed overflow-hidden border border-white/5 shadow-inner text-left">
-                    <div className="text-purple-400">export const <span className="text-blue-300">config</span> = {'{'}</div>
-                    <div className="pl-4 text-white/90">
-                      <span className="text-blue-200">framework</span>: <span className="text-emerald-400">&apos;Next.js 15&apos;</span>,
-                    </div>
-                    <div className="pl-4 text-white/90">
-                      <span className="text-blue-200">database</span>: <span className="text-emerald-400">&apos;Supabase&apos;</span>,
-                    </div>
-                    <div className="pl-4 text-white/90">
-                      <span className="text-blue-200">auth</span>: <span className="text-emerald-400">&apos;Auth SSR&apos;</span>
-                    </div>
-                    <div className="text-purple-400">{'}'};</div>
+                  <div className="text-purple-400">export const <span className="text-blue-300">config</span> = {'{'}</div>
+                  <div className="pl-4 text-white/90">
+                    <span className="text-blue-200">framework</span>: <span className="text-emerald-400">&apos;Next.js 16&apos;</span>,
                   </div>
+                  <div className="pl-4 text-white/90">
+                    <span className="text-blue-200">database</span>: <span className="text-emerald-400">&apos;Supabase&apos;</span>,
+                  </div>
+                  <div className="pl-4 text-white/90">
+                    <span className="text-blue-200">auth</span>: <span className="text-emerald-400">&apos;Auth SSR&apos;</span>
+                  </div>
+                  <div className="text-purple-400">{'}'};</div>
+                  </div>
+
                 </div>
 
                 <div className="absolute bottom-[35%] right-[12%] bg-accent border-2 border-primary/20 px-6 py-4 rounded-[2rem] text-sm font-bold shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-700 translate-y-4 group-hover:translate-y-0 flex items-center gap-3 bg-background/80 backdrop-blur-md z-30">
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                      <MousePointer2 className="h-4 w-4 text-primary" />
                   </div>
-                  <span className="text-base font-bold">Real-time collaboration active</span>
+                  <span className="text-base font-bold">{t('showcase.active')}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <ScrollGuide direction="down" label="Get Started" />
+        <ScrollGuide direction="down" label={t('cta.button')} />
       </section>
 
       {/* Page 4: Final CTA & Footer Section */}
       <footer className="w-full h-full snap-start snap-always relative flex flex-col justify-between bg-background overflow-hidden border-t border-border">
-        <ScrollGuide direction="up" label="Back to Showcase" />
+        <ScrollGuide direction="up" label={t('showcase.title')} />
         
         {/* Top: Final CTA Section */}
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-10 relative px-4">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(var(--primary-rgb),0.05)_0%,transparent_70%)] pointer-events-none" />
           <div className="space-y-4 relative z-10">
-            <h3 className="text-4xl md:text-7xl font-black tracking-tight">Ready to Map Your <br /><span className="text-primary italic">Next Big Idea?</span></h3>
+            <h3 className="text-4xl md:text-7xl font-black tracking-tight">
+              {t.rich('cta.title', {
+                vision: (chunks) => <span className="text-primary italic">{chunks}</span>
+              })}
+            </h3>
             <p className="max-w-2xl mx-auto text-muted-foreground text-xl md:text-2xl font-medium">
-              Join thousands of visionary teams organizing their thoughts with MindMap AI.
+              {t('cta.description')}
             </p>
           </div>
           <Link href="/login" className="relative z-10">
             <Button size="lg" className="rounded-2xl px-16 h-20 text-2xl font-black shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all duration-300">
-              Get Started for Free
+              {t('cta.button')}
               <ArrowUpRight className="ml-2 h-7 w-7 stroke-[3px]" />
             </Button>
           </Link>
@@ -210,16 +227,16 @@ export function LandingView() {
         <div className="w-full border-t border-border bg-card/30 backdrop-blur-xl">
           <div className="container mx-auto px-4 md:px-8 py-16">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-5xl mx-auto text-center md:text-left mb-16">
-              <FooterSection title="Product" links={['Features', 'Showcase', 'Security']} />
-              <FooterSection title="Resources" links={['Documentation', 'API Reference', 'Community']} />
-              <FooterSection title="Company" links={['About Us', 'Privacy Policy', 'Terms']} />
-              <FooterSection title="Connect" links={['Twitter / X', 'GitHub', 'LinkedIn']} />
+              <FooterSection title={t('footer.product')} links={['Features', 'Showcase', 'Security']} />
+              <FooterSection title={t('footer.resources')} links={['Documentation', 'API Reference', 'Community']} />
+              <FooterSection title={t('footer.company')} links={['About Us', 'Privacy Policy', 'Terms']} />
+              <FooterSection title={t('footer.connect')} links={['Twitter / X', 'GitHub', 'LinkedIn']} />
             </div>
             
             <div className="pt-12 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-3">
-                <BrainCircuit className="h-8 w-8 text-primary" />
-                <p className="text-sm font-bold text-muted-foreground tracking-tight opacity-60">© 2026 MindMap AI. Designed for visionary teams.</p>
+                <FractFlowIcon className="h-8 w-8 text-primary" />
+                <p className="text-sm font-bold text-muted-foreground tracking-tight opacity-60">{t('footer.rights')}</p>
               </div>
               <div className="flex gap-4">
                 <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer border border-border/50">
