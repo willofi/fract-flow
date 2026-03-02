@@ -1,0 +1,75 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "new_map": "New Flow",
+    "sign_out": "Sign Out",
+    "sign_in": "Sign In",
+    "get_started": "Get Started",
+    "syncing": "Syncing",
+    "saved": "Saved"
+  },
+  "landing": {
+    "hero": {
+      "future": "Next-Gen Mind-Mapping",
+      "title": "Scale Your <vision>Ideas</vision> to Infinity",
+      "description": "A high-performance, AI-powered workspace built for product strategy, research, and creative brainstorming.",
+      "get_started": "Get Started",
+      "watch_demo": "Watch Demo"
+    },
+    "features": {
+      "capabilities": "Capabilities",
+      "title": "Everything You Need to <master>Master Your Flow</master>",
+      "description": "Our workspace combines the simplicity of mind-mapping with the power of modern engineering tools.",
+      "f1": {
+        "title": "Instant Nodes",
+        "description": "Expand your ideas instantly with intuitive shortcuts and smooth interactions."
+      },
+      "f2": {
+        "title": "Markdown Ready",
+        "description": "Document with rich text, nested lists, and multi-line markdown inside any node."
+      },
+      "f3": {
+        "title": "Enterprise Security",
+        "description": "Secure your intellectual property with private database isolation."
+      },
+      "f4": {
+        "title": "Dynamic Scaling",
+        "description": "A high-performance engine capable of handling thousands of nodes without lag."
+      }
+    },
+    "showcase": {
+      "title": "Powerful Editor Experience",
+      "description": "Experience auto-layout, real-time sync, and intelligent connections in a fluid workspace.",
+      "active": "Real-time collaboration active"
+    },
+    "cta": {
+      "title": "Ready to Map Your <vision>Next Big Idea</vision>?",
+      "description": "Join thousands of visionary teams organizing their thoughts with FractFlow.",
+      "button": "Get Started for Free"
+    },
+    "footer": {
+      "product": "Product",
+      "resources": "Resources",
+      "company": "Company",
+      "connect": "Connect",
+      "rights": "© 2026 FractFlow. Designed for visionary teams."
+    }
+  },
+  "dashboard": {
+    "workspace": "Workspace",
+    "title": "Your Visual <knowledge>Knowledge</knowledge> Base",
+    "description": "Manage your thoughts, map complex ideas, and track your creative progress.",
+    "new_flow": "New Flow",
+    "projects": "{count} Projects",
+    "unlimited": "Unlimited Access",
+    "search": "Search your maps...",
+    "loading": "Syncing workspace...",
+    "no_maps": "No Maps Found",
+    "no_maps_desc": "Your creative journey starts here. Create your first flow to visualize your thoughts.",
+    "create_first": "Create First Flow",
+    "delete_confirm": "Are you sure you want to delete \"{title}\"?",
+    "delete_failed": "Failed to delete the map. Please try again.",
+    "updated_ago": "Updated {time} ago",
+    "explore_desc": "Explore nodes and connections in this workspace."
+  }
+}

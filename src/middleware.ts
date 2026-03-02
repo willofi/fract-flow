@@ -1,30 +1,26 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/utils/supabase/middleware'
+import { NextResponse, type NextRequest } from 'next/server';
+import { updateSession } from '@/utils/supabase/proxy';
+import createIntlMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request)
+  // 1. Handle i18n
+  const intlResponse = intlMiddleware(request);
 
-  // /map 으로 시작하는 경로는 모두 보호
-  if (request.nextUrl.pathname.startsWith('/map') && !user) {
-    return Response.redirect(new URL('/login', request.url))
-  }
+  // 2. Handle Supabase Session (i18nResponse를 전달하여 쿠키를 입힙니다)
+  const { supabaseResponse } = await updateSession(request, intlResponse as NextResponse);
 
-  // /login 접근 시 이미 로그인되어 있다면 홈으로
-  if (request.nextUrl.pathname === '/login' && user) {
-    return Response.redirect(new URL('/', request.url))
-  }
-
-  return supabaseResponse
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    /*
-     * 아래와 같은 정적 리소스를 제외한 모든 경로에서 미들웨어 실행
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Match all pathnames except for
+    // - … if they contain a dot, e.g. `favicon.ico`
+    // - /api, /_next, /_vercel
+    // - all root files: /favicon.ico, /icon.png, etc.
+    '/((?!api|_next|_vercel|_not-found|.*\\..*).*)',
   ],
-}
+};

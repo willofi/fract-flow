@@ -1,0 +1,75 @@
+{
+  "common": {
+    "dashboard": "대시보드",
+    "new_map": "새로운 플로우",
+    "sign_out": "로그아웃",
+    "sign_in": "로그인",
+    "get_started": "시작하기",
+    "syncing": "동기화 중",
+    "saved": "저장됨"
+  },
+  "landing": {
+    "hero": {
+      "future": "차세대 마인드맵 솔루션",
+      "title": "당신의 <vision>아이디어</vision>를 무한히 확장하세요",
+      "description": "제품 전략, 학술 연구 및 창의적인 브레인스토밍을 위해 설계된 고성능 AI 기반 워크스페이스입니다.",
+      "get_started": "시작하기",
+      "watch_demo": "데모 보기"
+    },
+    "features": {
+      "capabilities": "주요 기능",
+      "title": "워크플로우를 <master>완벽하게 마스터</master>하기 위한 모든 것",
+      "description": "마인드맵의 직관적인 시각화와 현대적인 엔지니어링 도구의 강력함을 결합했습니다.",
+      "f1": {
+        "title": "즉각적인 노드 생성",
+        "description": "단축키와 부드러운 인터랙션으로 생각을 막힘없이 확장하세요."
+      },
+      "f2": {
+        "title": "마크다운 기반 문서화",
+        "description": "노드 내부에서 풍부한 텍스트, 리스트 및 코드 블록을 자유롭게 활용하세요."
+      },
+      "f3": {
+        "title": "엔터프라이즈급 보안",
+        "description": "격리된 전용 데이터베이스를 통해 소중한 지적 재산을 안전하게 보호합니다."
+      },
+      "f4": {
+        "title": "지연 없는 확장성",
+        "description": "수천 개의 노드도 성능 저하 없이 매끄럽게 처리하는 고성능 엔진을 탑재했습니다."
+      }
+    },
+    "showcase": {
+      "title": "강력한 에디터 경험",
+      "description": "자동 레이아웃과 실시간 동기화로 복잡한 생각을 구조화된 지식으로 바꾸세요.",
+      "active": "실시간 협업 활성화됨"
+    },
+    "cta": {
+      "title": "당신의 <vision>아이디어</vision>를 시각화할 준비가 되셨나요?",
+      "description": "이미 수천 개의 혁신적인 팀이 FractFlow와 함께 생각을 정리하고 있습니다.",
+      "button": "무료로 시작하기"
+    },
+    "footer": {
+      "product": "제품",
+      "resources": "리소스",
+      "company": "회사",
+      "connect": "연결",
+      "rights": "© 2026 FractFlow. Designed for visionary teams."
+    }
+  },
+  "dashboard": {
+    "workspace": "워크스페이스",
+    "title": "당신의 시각적 <knowledge>지식</knowledge> 베이스",
+    "description": "생각을 관리하고, 복잡한 아이디어를 구조화하며, 창의적인 진행 상황을 한눈에 파악하세요.",
+    "new_flow": "새로운 플로우",
+    "projects": "{count}개의 프로젝트",
+    "unlimited": "무제한 액세스",
+    "search": "플로우 검색...",
+    "loading": "워크스페이스 동기화 중...",
+    "no_maps": "플로우를 찾을 수 없습니다",
+    "no_maps_desc": "당신의 창의적인 여정이 여기서 시작됩니다. 첫 번째 플로우를 만들어 생각을 시각화해 보세요.",
+    "create_first": "첫 번째 플로우 만들기",
+    "delete_confirm": "\"{title}\"을(를) 삭제하시겠습니까?",
+    "delete_failed": "삭제에 실패했습니다. 다시 시도해 주세요.",
+    "updated_ago": "{time} 전 업데이트됨",
+    "explore_desc": "노드와 연결을 통해 지식의 지도를 그려보세요."
+  }
+}
