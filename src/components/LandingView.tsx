@@ -30,7 +30,7 @@ export function LandingView() {
                 {t.rich('hero.title', {
                   vision: (chunks) => (
                     <span className="relative inline-block">
-                      <span className="text-primary italic relative z-10">{chunks}</span>
+                      <span className="text-primary relative z-10">{chunks}</span>
                       <span className="absolute bottom-[-2%] left-0 w-full h-[11%] bg-primary/40 -skew-x-12 z-0" />
                     </span>
                   )
