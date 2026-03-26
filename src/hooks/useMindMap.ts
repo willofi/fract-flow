@@ -23,11 +23,23 @@ export function useMindMap(mapId?: string) {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async ({ nodes, edges, title }: { nodes: Node[], edges: Edge[], title: string }) => {
+    mutationFn: async ({
+      nodes,
+      edges,
+      title,
+      targetMapId,
+    }: {
+      nodes: Node[];
+      edges: Edge[];
+      title: string;
+      targetMapId?: string;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Authentication required to save mind maps');
 
-      if (!mapId) {
+      const effectiveMapId = targetMapId ?? mapId;
+
+      if (!effectiveMapId) {
         // Create new map
         const { data, error } = await supabase
           .from('maps')
@@ -51,7 +63,7 @@ export function useMindMap(mapId?: string) {
             title, 
             updated_at: new Date().toISOString() 
           })
-          .eq('id', mapId)
+          .eq('id', effectiveMapId)
           .select()
           .single();
         if (error) throw error;

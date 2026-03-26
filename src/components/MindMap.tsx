@@ -36,6 +36,10 @@ const defaultEdgeOptions = {
   type: 'default',
 };
 
+function cloneGraph<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 function MindMapContent({ mapId }: { mapId?: string }) {
   const { 
     nodes, 
@@ -69,19 +73,25 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   const lastSavedVersion = useRef(version);
   const lastSavedTitle = useRef(title);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const loadedMapIdRef = useRef<string | undefined>(undefined);
 
   // RESET LOGIC: When mapId changes, force a fresh start
   useEffect(() => {
-    setIsInitialLoad(true);
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    queueMicrotask(() => setIsInitialLoad(true));
+    loadedMapIdRef.current = undefined;
+    lastSavedVersion.current = version;
+    lastSavedTitle.current = 'Loading...';
     setPendingConnection(null);
-    setTitle('Loading...'); // Visual reset
+    queueMicrotask(() => setTitle('Loading...')); // Visual reset
     setNodes([]); // Clear stale nodes
     setEdges([]); // Clear stale edges
-  }, [mapId, setPendingConnection, setNodes, setEdges]);
+  }, [mapId, setPendingConnection, setNodes, setEdges, version]);
 
   // AUTO-SAVE LOGIC: Only trigger if structural version or title actually changed
   useEffect(() => {
     if (isInitialLoad) return;
+    if (mapId && loadedMapIdRef.current !== mapId) return;
 
     // Check if anything meaningful changed since last save
     if (version === lastSavedVersion.current && title === lastSavedTitle.current) {
@@ -92,7 +102,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
     autoSaveTimerRef.current = setTimeout(() => {
       if (nodes.length > 0) {
-        save.mutate({ nodes, edges, title }, {
+        save.mutate({ nodes, edges, title, targetMapId: mapId }, {
           onSuccess: (data) => {
             lastSavedVersion.current = version;
             lastSavedTitle.current = title;
@@ -117,12 +127,13 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       // Ensure the loaded data matches the current mapId
       if (mapData.id !== mapId) return;
 
-      setNodes(mapData.nodes || []);
-      setEdges(mapData.edges || []);
-      setTitle(mapData.title);
+      setNodes(cloneGraph(mapData.nodes || []));
+      setEdges(cloneGraph(mapData.edges || []));
+      queueMicrotask(() => setTitle(mapData.title));
+      loadedMapIdRef.current = mapId;
       lastSavedVersion.current = version;
       lastSavedTitle.current = mapData.title;
-      setIsInitialLoad(false);
+      queueMicrotask(() => setIsInitialLoad(false));
       setTimeout(() => fitView({ padding: 0.8 }), 100);
     } else if (!mapId && !isLoading && allMaps !== undefined) {
       // New map initialization
@@ -139,9 +150,11 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
       setNodes([{ id: 'root', type: 'markdown', data: { label: '# Start Here' }, position: { x: 0, y: 0 } }]);
       setEdges([]);
-      setTitle(nextTitle);
+      queueMicrotask(() => setTitle(nextTitle));
+      loadedMapIdRef.current = undefined;
+      lastSavedVersion.current = version;
       lastSavedTitle.current = nextTitle;
-      setIsInitialLoad(false);
+      queueMicrotask(() => setIsInitialLoad(false));
       setTimeout(() => fitView({ padding: 0.8 }), 100);
     }
   }, [mapData, mapId, isLoading, allMaps, setNodes, setEdges, fitView, version, isInitialLoad]);
@@ -262,7 +275,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
             <div className="w-[1px] h-2 bg-border/60 mx-1" />
             <Button onClick={onShare} variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-accent/50" title="Copy URL"><Share2 className="h-4 w-4" /></Button>
             <div className="w-[1px] h-2 bg-border/60 mx-1" />
-            <Button onClick={() => save.mutate({ nodes, edges, title })} disabled={save.isPending || !isMapReady} variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-accent/50" title="Manual Save">{save.isPending ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Save className="h-4 w-4" />}</Button>
+            <Button onClick={() => save.mutate({ nodes, edges, title, targetMapId: mapId })} disabled={save.isPending || !isMapReady} variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-accent/50" title="Manual Save">{save.isPending ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Save className="h-4 w-4" />}</Button>
           </Card>
         </Panel>
         <Panel position="bottom-center" className="mb-6 pointer-events-none">
