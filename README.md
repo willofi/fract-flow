@@ -91,7 +91,18 @@
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+   NEXT_PUBLIC_APP_URL=https://fract-flow.leeseongjun.com
    ```
+
+   도메인을 변경했다면 아래 항목도 반드시 함께 업데이트하세요:
+   - Supabase Dashboard → Authentication → URL Configuration
+   - `Site URL`: `https://fract-flow.leeseongjun.com`
+   - `Redirect URLs`에 다음 URL 추가:
+     - `https://fract-flow.leeseongjun.com/en/auth/callback`
+     - `https://fract-flow.leeseongjun.com/ko/auth/callback`
+   - 로컬 개발용 URL도 필요 시 함께 추가:
+     - `http://localhost:3000/en/auth/callback`
+     - `http://localhost:3000/ko/auth/callback`
 
 3. **개발 서버 실행**
    ```bash

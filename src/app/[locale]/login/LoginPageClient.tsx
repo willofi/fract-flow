@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useRouter } from '@/i18n/navigation'
+import { useLocale } from 'next-intl'
+import { getAuthCallbackUrl } from '@/lib/auth-url'
 
 export default function LoginPageClient() {
   const [email, setEmail] = useState('')
@@ -17,6 +19,7 @@ export default function LoginPageClient() {
 
   const supabase = createClient()
   const router = useRouter()
+  const locale = useLocale()
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +52,7 @@ export default function LoginPageClient() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: getAuthCallbackUrl(locale),
       },
     })
 
@@ -67,7 +70,7 @@ export default function LoginPageClient() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthCallbackUrl(locale),
       },
     })
   }
