@@ -2,15 +2,11 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps, NodeResizer } from 'reactflow';
+import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import Editor from 'react-simple-code-editor';
-import { highlight, languages } from 'prismjs';
-import 'prismjs/components/prism-clike';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-markdown';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { cn } from '@/lib/utils';
 import {
@@ -33,18 +29,28 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   const pendingConnection = useMindMapStore((state) => state.pendingConnection);
   const setPendingConnection = useMindMapStore((state) => state.setPendingConnection);
   
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorPanelRef = useRef<HTMLDivElement>(null);
+  const editorTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    setContent(data.label || '');
     setIsEditing(true);
-  }, []);
+  }, [data.label]);
 
-  const onBlur = useCallback(() => {
+  const commitEdit = useCallback(() => {
     setIsEditing(false);
-    updateNodeData(id, { label: content });
-  }, [id, content, updateNodeData]);
+    if ((data.label || '') !== content) {
+      updateNodeData(id, { label: content });
+    }
+  }, [content, data.label, id, updateNodeData]);
+
+  const cancelEdit = useCallback(() => {
+    setContent(data.label || '');
+    setIsEditing(false);
+  }, [data.label]);
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!containerRef.current || isEditing) return;
@@ -100,11 +106,27 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   };
 
   useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.setSelectionRange(content.length, content.length);
-    }
-  }, [isEditing, content.length]);
+    if (!isEditing) return;
+
+    const timer = window.setTimeout(() => {
+      if (!editorTextareaRef.current) return;
+      editorTextareaRef.current.focus();
+      editorTextareaRef.current.setSelectionRange(content.length, content.length);
+    }, 0);
+
+    const handleOutsideClick = (event: PointerEvent) => {
+      if (!editorPanelRef.current) return;
+      if (!editorPanelRef.current.contains(event.target as globalThis.Node)) {
+        commitEdit();
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutsideClick, true);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('pointerdown', handleOutsideClick, true);
+    };
+  }, [isEditing, content.length, commitEdit]);
 
   const isSource = pendingConnection?.nodeId === id;
 
@@ -196,35 +218,18 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
             <div className={cn("handle-indicator-circle", (hoveredAnchor === 'r' || (isSource && pendingConnection?.handleId === 'r')) && "active")} style={{ top: '50%', left: '100%' }} />
             
             {/* INTERIOR CONTENT: Drag zone */}
-            <div className="flex-1 overflow-hidden pointer-events-none flex items-center justify-center p-1">
-              {isEditing ? (
-                <div className="w-full h-full pointer-events-auto overflow-auto scrollbar-hide flex items-start justify-center pt-2">
-                  <Editor
-                    value={content}
-                    onValueChange={code => setContent(code)}
-                    highlight={code => highlight(code, languages.markdown, 'markdown')}
-                    padding={4}
-                    onBlur={onBlur}
-                    style={{
-                      fontFamily: '"Fira code", "Fira Mono", monospace',
-                      fontSize: '8px',
-                      width: '100%',
-                      minHeight: '100%',
-                      textAlign: 'left',
-                      backgroundColor: 'transparent', // 편집 시 배경 투명 (노드 색상 유지)
-                      color: 'inherit',
-                      lineHeight: '1.2',
-                    }}
-                    textareaClassName="focus:ring-0 outline-none !p-1 text-foreground"
-                    preClassName="!p-1"
-                  />
-                </div>
-              ) : (
+            <div className="flex-1 overflow-hidden pointer-events-none flex items-center justify-center p-1 relative">
+              {!isEditing && (
                 <div className="prose prose-xs dark:prose-invert max-w-none break-words leading-tight tracking-tight pointer-events-auto text-[8px] font-semibold px-1 w-full h-full flex flex-col items-center justify-center">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code({ node, inline, className, children, ...props }: any) {
+                      code({
+                        inline,
+                        className,
+                        children,
+                        ...props
+                      }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean; node?: unknown }) {
                         const match = /language-(\w+)/.exec(className || '');
                         if (!inline) {
                           return (
@@ -261,7 +266,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
                       }
                     }}
                   >
-                    {content || '*Empty*'}
+                    {(data.label as string) || '*Empty*'}
                   </ReactMarkdown>
                 </div>
               )}
@@ -287,6 +292,48 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
           </div>
         </ContextMenuContent>
       </ContextMenu>
+      {typeof document !== 'undefined' && isEditing && createPortal(
+        <div className="fixed inset-0 z-[2000] pointer-events-auto animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div
+              ref={editorPanelRef}
+              className="nodrag nowheel w-[min(92vw,640px)] min-h-[320px] bg-card border-2 border-primary/30 rounded-2xl shadow-[0_24px_80px_-12px_rgba(0,0,0,0.45)] p-5 animate-in zoom-in-95 slide-in-from-bottom-3 duration-200"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/85">
+                  Markdown Editor
+                </div>
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-primary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  Editing
+                </div>
+              </div>
+              <textarea
+                ref={editorTextareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEdit();
+                  }
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    commitEdit();
+                  }
+                }}
+                className="w-full min-h-[250px] resize-y rounded-xl border border-border/60 bg-background px-3.5 py-3 font-mono text-[14px] leading-relaxed text-foreground caret-primary outline-none ring-0 focus:border-primary/50 focus:shadow-[0_0_0_2px_rgba(var(--primary-rgb),0.15)]"
+              />
+              <div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-muted-foreground/85">
+                <span>Esc: cancel</span>
+                <span>Ctrl/Cmd + Enter: save</span>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

@@ -17,14 +17,19 @@ interface MindMapState {
   nodes: Node[];
   edges: Edge[];
   version: number; // Used to track intentional changes for auto-save
+  title: string;
+  isInitialLoad: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
+  setTitle: (title: string) => void;
+  setIsInitialLoad: (isInitialLoad: boolean) => void;
   addNode: (node: Node) => void;
-  updateNodeData: (nodeId: string, data: any) => void;
+  updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
   setNodeColor: (nodeId: string, color: string) => void;
+  resetGraph: () => void;
   pendingConnection: { nodeId: string; handleId: string } | null;
   setPendingConnection: (connection: { nodeId: string; handleId: string } | null) => void;
   isSaving: boolean;
@@ -35,6 +40,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   nodes: [],
   edges: [],
   version: 0,
+  title: 'New Mind Map',
+  isInitialLoad: true,
   pendingConnection: null,
   isSaving: false,
   onNodesChange: (changes: NodeChange[]) => {
@@ -68,13 +75,19 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setEdges: (edges: Edge[]) => {
     set({ edges });
   },
+  setTitle: (title: string) => {
+    set({ title });
+  },
+  setIsInitialLoad: (isInitialLoad: boolean) => {
+    set({ isInitialLoad });
+  },
   addNode: (node: Node) => {
     set({
       nodes: [...get().nodes, node],
       version: get().version + 1
     });
   },
-  updateNodeData: (nodeId: string, data: any) => {
+  updateNodeData: (nodeId: string, data: Record<string, unknown>) => {
     set({
       nodes: get().nodes.map((node) => {
         if (node.id === nodeId) {
@@ -94,6 +107,16 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         return node;
       }),
       version: get().version + 1
+    });
+  },
+  resetGraph: () => {
+    set({
+      nodes: [],
+      edges: [],
+      version: 0,
+      title: 'Loading...',
+      isInitialLoad: true,
+      pendingConnection: null
     });
   },
   setPendingConnection: (pendingConnection) => {

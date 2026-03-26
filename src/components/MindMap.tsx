@@ -44,11 +44,16 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   const { 
     nodes, 
     edges, 
+    title,
+    isInitialLoad,
     onNodesChange, 
     onEdgesChange, 
     onConnect, 
     setNodes, 
     setEdges,
+    setTitle,
+    setIsInitialLoad,
+    resetGraph,
     addNode,
     setPendingConnection,
     version,
@@ -63,13 +68,11 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     setIsSaving(save.isPending);
   }, [save.isPending, setIsSaving]);
   
-  const [title, setTitle] = useState('New Mind Map');
   const [copied, setCopied] = useState(false);
   const { theme } = useTheme();
   const { project, fitView } = useReactFlow();
   const router = useRouter();
   
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const lastSavedVersion = useRef(version);
   const lastSavedTitle = useRef(title);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,15 +81,11 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   // RESET LOGIC: When mapId changes, force a fresh start
   useEffect(() => {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    queueMicrotask(() => setIsInitialLoad(true));
     loadedMapIdRef.current = undefined;
-    lastSavedVersion.current = version;
+    lastSavedVersion.current = 0;
     lastSavedTitle.current = 'Loading...';
-    setPendingConnection(null);
-    queueMicrotask(() => setTitle('Loading...')); // Visual reset
-    setNodes([]); // Clear stale nodes
-    setEdges([]); // Clear stale edges
-  }, [mapId, setPendingConnection, setNodes, setEdges, version]);
+    resetGraph(); // Clear stale graph state atomically
+  }, [mapId, resetGraph]);
 
   // AUTO-SAVE LOGIC: Only trigger if structural version or title actually changed
   useEffect(() => {
@@ -129,11 +128,11 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
       setNodes(cloneGraph(mapData.nodes || []));
       setEdges(cloneGraph(mapData.edges || []));
-      queueMicrotask(() => setTitle(mapData.title));
+      setTitle(mapData.title);
       loadedMapIdRef.current = mapId;
       lastSavedVersion.current = version;
       lastSavedTitle.current = mapData.title;
-      queueMicrotask(() => setIsInitialLoad(false));
+      setIsInitialLoad(false);
       setTimeout(() => fitView({ padding: 0.8 }), 100);
     } else if (!mapId && !isLoading && allMaps !== undefined) {
       // New map initialization
@@ -150,14 +149,14 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
       setNodes([{ id: 'root', type: 'markdown', data: { label: '# Start Here' }, position: { x: 0, y: 0 } }]);
       setEdges([]);
-      queueMicrotask(() => setTitle(nextTitle));
+      setTitle(nextTitle);
       loadedMapIdRef.current = undefined;
       lastSavedVersion.current = version;
       lastSavedTitle.current = nextTitle;
-      queueMicrotask(() => setIsInitialLoad(false));
+      setIsInitialLoad(false);
       setTimeout(() => fitView({ padding: 0.8 }), 100);
     }
-  }, [mapData, mapId, isLoading, allMaps, setNodes, setEdges, fitView, version, isInitialLoad]);
+  }, [mapData, mapId, isLoading, allMaps, setNodes, setEdges, setTitle, setIsInitialLoad, fitView, version, isInitialLoad]);
 
   // AUTO-ROUTING
   useEffect(() => {
@@ -226,6 +225,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   return (
     <div className="h-[calc(100vh-4rem)] w-full bg-background relative overflow-hidden">
       <ReactFlow
+        key={mapId ?? 'new'}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
