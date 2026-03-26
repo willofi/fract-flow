@@ -58,14 +58,14 @@ export function Header() {
           {isMapPage && (
             <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-full border border-border/40 transition-all duration-300">
               {isSaving ? (
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-                  <CloudUpload className="h-3.5 w-3.5 animate-bounce" />
-                  <span className="animate-pulse">{t('syncing')}</span>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary leading-none">
+                  <CloudUpload className="h-3.5 w-3.5 shrink-0 self-center animate-pulse" />
+                  <span className="self-center animate-pulse">{t('syncing')}</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
-                  <CloudCheck className="h-3.5 w-3.5 text-green-500/80" />
-                  <span>{t('saved')}</span>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 leading-none">
+                  <CloudCheck className="h-3.5 w-3.5 shrink-0 self-center text-green-500/80" />
+                  <span className="self-center">{t('saved')}</span>
                 </div>
               )}
             </div>
