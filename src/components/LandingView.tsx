@@ -211,7 +211,7 @@ export function LandingView() {
           <div className="space-y-4 relative z-10">
             <h3 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight">
               {t.rich('cta.title', {
-                vision: (chunks) => <span className="text-primary italic">{chunks}</span>
+                vision: (chunks) => <span className="text-primary">{chunks}</span>
               })}
             </h3>
             <p className="max-w-xl md:max-w-2xl mx-auto text-muted-foreground text-lg md:text-2xl font-medium">
