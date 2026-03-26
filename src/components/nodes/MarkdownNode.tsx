@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import vscDarkPlus from 'react-syntax-highlighter/dist/esm/styles/prism/vsc-dark-plus';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { cn } from '@/lib/utils';
 import {
@@ -268,7 +268,6 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
                                   fontFamily: 'inherit',
                                 }
                               }}
-                              {...props}
                             >
                               {codeText}
                             </SyntaxHighlighter>
