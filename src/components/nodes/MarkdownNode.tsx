@@ -32,6 +32,16 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorPanelRef = useRef<HTMLDivElement>(null);
   const editorTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const latestContentRef = useRef(content);
+  const latestLabelRef = useRef((data.label as string) || '');
+
+  useEffect(() => {
+    latestContentRef.current = content;
+  }, [content]);
+
+  useEffect(() => {
+    latestLabelRef.current = (data.label as string) || '';
+  }, [data.label]);
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,11 +51,12 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   }, [data.label]);
 
   const commitEdit = useCallback(() => {
+    const nextContent = latestContentRef.current;
     setIsEditing(false);
-    if ((data.label || '') !== content) {
-      updateNodeData(id, { label: content });
+    if (latestLabelRef.current !== nextContent) {
+      updateNodeData(id, { label: nextContent });
     }
-  }, [content, data.label, id, updateNodeData]);
+  }, [id, updateNodeData]);
 
   const cancelEdit = useCallback(() => {
     setContent(data.label || '');
@@ -111,7 +122,8 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
     const timer = window.setTimeout(() => {
       if (!editorTextareaRef.current) return;
       editorTextareaRef.current.focus();
-      editorTextareaRef.current.setSelectionRange(content.length, content.length);
+      const cursorPos = latestContentRef.current.length;
+      editorTextareaRef.current.setSelectionRange(cursorPos, cursorPos);
     }, 0);
 
     const handleOutsideClick = (event: PointerEvent) => {
@@ -126,7 +138,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
       window.clearTimeout(timer);
       document.removeEventListener('pointerdown', handleOutsideClick, true);
     };
-  }, [isEditing, content.length, commitEdit]);
+  }, [isEditing, commitEdit]);
 
   const isSource = pendingConnection?.nodeId === id;
 
@@ -231,12 +243,15 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
                         ...props
                       }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean; node?: unknown }) {
                         const match = /language-(\w+)/.exec(className || '');
-                        if (!inline) {
+                        const codeText = String(children).replace(/\n$/, '');
+                        const isBlockCode = Boolean(match) || codeText.includes('\n');
+
+                        if (!inline && isBlockCode) {
                           return (
                             <SyntaxHighlighter
                               style={vscDarkPlus}
                               language={match ? match[1] : 'javascript'}
-                              PreTag="div"
+                              PreTag="span"
                               className="rounded-md my-1 text-left shadow-sm w-full"
                               customStyle={{
                                 fontSize: '8px',
@@ -244,7 +259,8 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
                                 padding: '6px',
                                 margin: '2px 0',
                                 background: '#1e1e1e',
-                              }}
+                                display: 'block',
+                                }}
                               codeTagProps={{
                                 style: {
                                   fontSize: '8px', // 내부 코드 태그 크기 강제 고정
@@ -254,7 +270,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
                               }}
                               {...props}
                             >
-                              {String(children).replace(/\n$/, '')}
+                              {codeText}
                             </SyntaxHighlighter>
                           );
                         }
