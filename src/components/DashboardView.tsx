@@ -8,7 +8,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useState, useCallback } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
 import { useTranslations, useLocale } from 'next-intl';
 
@@ -159,7 +159,7 @@ export function DashboardView() {
                       <div className="flex w-full items-center justify-between">
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/80 text-[10px] font-black uppercase tracking-[0.2em] text-secondary-foreground/80 border border-border/50">
                           <Calendar className="h-3 w-3" />
-                          {new Date(map.created_at).toLocaleDateString(locale)}
+                          {format(new Date(map.updated_at), 'yyyy.MM.dd HH:mm')}
                         </div>
                       </div>
                     </CardFooter>
