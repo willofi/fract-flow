@@ -76,7 +76,7 @@ export default function LoginPageClient() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background px-4">
+    <div className="flex min-h-[calc(100svh-4rem)] items-center justify-center bg-background px-4 py-6">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
