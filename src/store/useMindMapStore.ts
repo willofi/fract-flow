@@ -19,6 +19,13 @@ interface MindMapState {
   version: number; // Used to track intentional changes for auto-save
   title: string;
   isInitialLoad: boolean;
+  isTouchDevice: boolean;
+  interactionMode: 'select' | 'add' | 'connect' | 'resize';
+  selectedNodeId: string | null;
+  nodeActionSheetNodeId: string | null;
+  editingNodeId: string | null;
+  helpOpen: boolean;
+  hasSeenHelpV1: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -26,7 +33,15 @@ interface MindMapState {
   setEdges: (edges: Edge[]) => void;
   setTitle: (title: string) => void;
   setIsInitialLoad: (isInitialLoad: boolean) => void;
+  setIsTouchDevice: (isTouchDevice: boolean) => void;
+  setInteractionMode: (mode: 'select' | 'add' | 'connect' | 'resize') => void;
+  setSelectedNodeId: (nodeId: string | null) => void;
+  setNodeActionSheetNodeId: (nodeId: string | null) => void;
+  setEditingNodeId: (nodeId: string | null) => void;
+  setHelpOpen: (helpOpen: boolean) => void;
+  setHasSeenHelpV1: (hasSeenHelpV1: boolean) => void;
   addNode: (node: Node) => void;
+  deleteNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
   setNodeColor: (nodeId: string, color: string) => void;
   resetGraph: () => void;
@@ -42,6 +57,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   version: 0,
   title: 'New Mind Map',
   isInitialLoad: true,
+  isTouchDevice: false,
+  interactionMode: 'select',
+  selectedNodeId: null,
+  nodeActionSheetNodeId: null,
+  editingNodeId: null,
+  helpOpen: false,
+  hasSeenHelpV1: false,
   pendingConnection: null,
   isSaving: false,
   onNodesChange: (changes: NodeChange[]) => {
@@ -81,9 +103,40 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setIsInitialLoad: (isInitialLoad: boolean) => {
     set({ isInitialLoad });
   },
+  setIsTouchDevice: (isTouchDevice: boolean) => {
+    set({ isTouchDevice });
+  },
+  setInteractionMode: (interactionMode) => {
+    set({ interactionMode });
+  },
+  setSelectedNodeId: (selectedNodeId) => {
+    set({ selectedNodeId });
+  },
+  setNodeActionSheetNodeId: (nodeActionSheetNodeId) => {
+    set({ nodeActionSheetNodeId });
+  },
+  setEditingNodeId: (editingNodeId) => {
+    set({ editingNodeId });
+  },
+  setHelpOpen: (helpOpen: boolean) => {
+    set({ helpOpen });
+  },
+  setHasSeenHelpV1: (hasSeenHelpV1: boolean) => {
+    set({ hasSeenHelpV1 });
+  },
   addNode: (node: Node) => {
     set({
       nodes: [...get().nodes, node],
+      version: get().version + 1
+    });
+  },
+  deleteNode: (nodeId: string) => {
+    set({
+      nodes: get().nodes.filter((node) => node.id !== nodeId),
+      edges: get().edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
+      selectedNodeId: get().selectedNodeId === nodeId ? null : get().selectedNodeId,
+      nodeActionSheetNodeId: get().nodeActionSheetNodeId === nodeId ? null : get().nodeActionSheetNodeId,
+      pendingConnection: get().pendingConnection?.nodeId === nodeId ? null : get().pendingConnection,
       version: get().version + 1
     });
   },
@@ -116,7 +169,11 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       version: 0,
       title: 'Loading...',
       isInitialLoad: true,
-      pendingConnection: null
+      pendingConnection: null,
+      selectedNodeId: null,
+      nodeActionSheetNodeId: null,
+      editingNodeId: null,
+      interactionMode: 'select'
     });
   },
   setPendingConnection: (pendingConnection) => {

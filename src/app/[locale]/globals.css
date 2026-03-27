@@ -189,6 +189,10 @@
   opacity: 0 !important;
   background: transparent !important;
   border: none !important;
+  pointer-events: none !important;
+}
+
+.react-flow__handle.ff-connect-handle--enabled {
   pointer-events: auto !important;
 }
 
@@ -360,4 +364,3 @@
 .token.hr {
   color: var(--border);
 }
-
