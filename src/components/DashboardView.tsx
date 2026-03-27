@@ -4,13 +4,17 @@ import { useListMindMaps, useMindMap } from '@/hooks/useMindMap';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, ChevronRight, Search, Loader2, Sparkles, Clock, Trash2 } from 'lucide-react';
 import { FractFlowIcon } from '@/components/icons/FractFlowIcon';
-import { Link, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
 import { useTranslations, useLocale } from 'next-intl';
+
+const SWIPE_REVEAL_WIDTH = 92;
+const SWIPE_ACTIVATE_DISTANCE = 12;
+const SWIPE_DIRECTION_RATIO = 1.2;
 
 export function DashboardView() {
   const t = useTranslations('dashboard');
@@ -20,6 +24,11 @@ export function DashboardView() {
   const { data: maps, isLoading } = useListMindMaps();
   const { deleteMap } = useMindMap();
   const [search, setSearch] = useState('');
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+  const [swipingId, setSwipingId] = useState<string | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const swipeGestureRef = useRef<{ id: string; startX: number; startY: number; lock: 'x' | 'y' | null; baseOffset: number } | null>(null);
+  const deleteLabel = locale === 'ko' ? '삭제' : 'Delete';
 
   const filteredMaps = maps?.filter(map => 
     map.title.toLowerCase().includes(search.toLowerCase())
@@ -38,12 +47,64 @@ export function DashboardView() {
     }
   }, [deleteMap, t]);
 
+  const handleTouchStart = useCallback((id: string, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    const baseOffset = openSwipeId === id ? -SWIPE_REVEAL_WIDTH : 0;
+    swipeGestureRef.current = {
+      id,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lock: null,
+      baseOffset,
+    };
+    setSwipingId(id);
+    setSwipeOffset(baseOffset);
+  }, [openSwipeId]);
+
+  const handleTouchMove = useCallback((id: string, e: React.TouchEvent) => {
+    if (!swipeGestureRef.current || swipeGestureRef.current.id !== id) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const gesture = swipeGestureRef.current;
+    const deltaX = touch.clientX - gesture.startX;
+    const deltaY = touch.clientY - gesture.startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (!gesture.lock) {
+      if (absX > SWIPE_ACTIVATE_DISTANCE && absX > absY * SWIPE_DIRECTION_RATIO) {
+        gesture.lock = 'x';
+      } else if (absY > SWIPE_ACTIVATE_DISTANCE && absY > absX * SWIPE_DIRECTION_RATIO) {
+        gesture.lock = 'y';
+      } else {
+        return;
+      }
+    }
+
+    if (gesture.lock !== 'x') return;
+    const next = Math.min(0, Math.max(-SWIPE_REVEAL_WIDTH, gesture.baseOffset + deltaX));
+    setSwipeOffset(next);
+  }, []);
+
+  const handleTouchEnd = useCallback((id: string) => {
+    const gesture = swipeGestureRef.current;
+    if (gesture && gesture.id === id && gesture.lock === 'x') {
+      const finalOffset = swipingId === id ? swipeOffset : gesture.baseOffset;
+      const shouldOpen = finalOffset <= -SWIPE_REVEAL_WIDTH / 2;
+      setOpenSwipeId(shouldOpen ? id : null);
+    }
+    setSwipingId(null);
+    setSwipeOffset(0);
+    swipeGestureRef.current = null;
+  }, [swipeOffset, swipingId]);
+
   return (
     <div className="min-h-full bg-background/50 pb-20">
       {/* Dashboard Hero */}
       <div className="bg-background border-b relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/[0.02] pointer-events-none" />
-        <div className="container mx-auto px-4 md:px-8 py-16 flex flex-col md:flex-row md:items-center justify-between gap-8 relative">
+        <div className="mx-auto w-full max-w-screen-xl px-4 md:px-8 py-16 flex flex-col md:flex-row md:items-center justify-between gap-8 relative">
           <div className="space-y-4 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20">
               <Sparkles className="h-3 w-3" />
@@ -74,7 +135,7 @@ export function DashboardView() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-8 py-12 space-y-10">
+      <div className="mx-auto w-full max-w-screen-xl px-4 md:px-8 py-12 space-y-10">
         {/* Search Bar */}
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md group">
@@ -120,51 +181,99 @@ export function DashboardView() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredMaps.map((map) => (
               <div key={map.id} className="relative group">
-                <Link href={`/map/${map.id}`} className="block h-full">
-                  <Card className="h-full border-border/40 bg-card/40 backdrop-blur-md rounded-[2rem] overflow-hidden transition-all duration-500 hover:border-primary/40 hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:hover:shadow-primary/5 hover:-translate-y-2 group">
-                    <CardHeader className="p-8 pb-4">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-sm">
-                          <FractFlowIcon className="h-7 w-7" />
+                {(() => {
+                  const currentOffset = swipingId === map.id
+                    ? swipeOffset
+                    : openSwipeId === map.id
+                      ? -SWIPE_REVEAL_WIDTH
+                      : 0;
+                  const isRevealActive = currentOffset < -4;
+                  return (
+                    <>
+                <button
+                  type="button"
+                  className="absolute inset-y-1 right-0 z-0 flex w-[94px] items-center justify-center rounded-[1.6rem] border border-red-400/20 bg-red-500/12 text-red-700 dark:text-red-200 md:hidden"
+                  style={{
+                    opacity: isRevealActive ? 1 : 0,
+                    pointerEvents: isRevealActive ? 'auto' : 'none',
+                    transition: 'opacity 140ms ease',
+                  }}
+                  onClick={(e) => handleDelete(e, map.id, map.title)}
+                >
+                  <span className="flex flex-col items-center gap-1 text-[11px] font-black uppercase tracking-wider">
+                    <Trash2 className="h-4 w-4" />
+                    {deleteLabel}
+                  </span>
+                </button>
+
+                <div
+                  className="relative z-10 transition-transform duration-200 md:transform-none"
+                  style={{
+                    transform: `translateX(${currentOffset}px)`,
+                  }}
+                  onTouchStart={(e) => handleTouchStart(map.id, e)}
+                  onTouchMove={(e) => handleTouchMove(map.id, e)}
+                  onTouchEnd={() => handleTouchEnd(map.id)}
+                  onTouchCancel={() => handleTouchEnd(map.id)}
+                >
+                <Link
+                  href={`/map/${map.id}`}
+                  className="block h-full"
+                  onClick={(e) => {
+                    if (openSwipeId === map.id) {
+                      e.preventDefault();
+                      setOpenSwipeId(null);
+                    }
+                  }}
+                >
+                  <Card className="h-full border-border/40 bg-card/40 backdrop-blur-md rounded-[2rem] overflow-hidden shadow-[0_14px_24px_-20px_rgba(15,23,42,0.75)] transition-all duration-500 hover:border-primary/40 hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:hover:shadow-primary/5 hover:-translate-y-2 group">
+                    <CardHeader className="p-4 pb-2 md:p-8 md:pb-4">
+                      <div className="mb-3 flex items-center justify-between md:mb-6">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-sm md:h-14 md:w-14 md:rounded-2xl">
+                          <FractFlowIcon className="h-5 w-5 md:h-7 md:w-7" />
                         </div>
                         <div className="flex gap-2">
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-300"
-                            onClick={(e) => handleDelete(e, map.id, map.title)}
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                            <ChevronRight className="h-5 w-5 text-foreground group-hover:translate-x-0.5 transition-transform" />
+                            className="hidden md:inline-flex h-10 w-10 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300"
+                              onClick={(e) => handleDelete(e, map.id, map.title)}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary transition-colors group-hover:bg-primary/20 md:h-10 md:w-10">
+                            <ChevronRight className="h-4 w-4 text-foreground transition-transform group-hover:translate-x-0.5 md:h-5 md:w-5" />
                           </div>
                         </div>
                       </div>
-                      <CardTitle className="text-2xl font-black tracking-tight line-clamp-1 group-hover:text-primary transition-colors mb-2">
+                      <CardTitle className="mb-1 line-clamp-1 text-lg font-black tracking-tight transition-colors group-hover:text-primary md:mb-2 md:text-2xl">
                         {map.title}
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-muted-foreground/70">
-                        <Clock className="h-3.5 w-3.5" />
+                      <CardDescription className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 md:gap-2 md:text-xs">
+                        <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
                         {t('updated_ago', { time: formatDistanceToNow(new Date(map.updated_at), { locale: dateLocale }) })}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="px-8 py-0 h-24 relative flex items-center">
-                      <div className="absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-                      <p className="text-sm text-muted-foreground/80 line-clamp-2 leading-relaxed italic font-medium">
+                    <CardContent className="relative flex h-12 items-center px-4 py-0 md:h-24 md:px-8">
+                      <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-border/60 to-transparent md:inset-x-8" />
+                      <p className="line-clamp-2 text-xs font-medium italic leading-relaxed text-muted-foreground/80 md:text-sm">
                         {t('explore_desc')}
                       </p>
                     </CardContent>
-                    <CardFooter className="px-8 py-8 pt-0 mt-auto">
+                    <CardFooter className="mt-auto px-4 py-4 pt-0 md:px-8 md:py-8">
                       <div className="flex w-full items-center justify-between">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/80 text-[10px] font-black uppercase tracking-[0.2em] text-secondary-foreground/80 border border-border/50">
-                          <Calendar className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 rounded-full border border-border/50 bg-secondary/80 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-secondary-foreground/80 md:gap-2 md:px-3 md:py-1.5 md:text-[10px] md:tracking-[0.2em]">
+                          <Calendar className="h-2.5 w-2.5 md:h-3 md:w-3" />
                           {format(new Date(map.updated_at), 'yyyy.MM.dd HH:mm')}
                         </div>
                       </div>
                     </CardFooter>
                   </Card>
                 </Link>
+                </div>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>
