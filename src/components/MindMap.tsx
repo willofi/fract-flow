@@ -597,7 +597,8 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       onPointerUp={onPanePointerUp}
       onPointerCancel={onPanePointerUp}
     >
-      <ReactFlow
+      <div className="h-full w-full md:mx-auto md:max-w-screen-xl lg:px-8">
+        <ReactFlow
         key={mapId ?? 'new'}
         nodes={nodes}
         edges={edges}
@@ -846,7 +847,8 @@ function MindMapContent({ mapId }: { mapId?: string }) {
             </Button>
           </Panel>
         )}
-      </ReactFlow>
+        </ReactFlow>
+      </div>
 
       <Dialog
         open={Boolean(actionSheetNode)}
