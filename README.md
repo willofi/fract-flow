@@ -1,115 +1,77 @@
-# 🧠 FractFlow (프랙플로우)
+<p align="center">
+  <img src="./public/favicon.svg" alt="FractFlow Logo" width="88" />
+</p>
 
-> **당신의 생각을 시각화하고 실시간으로 동기화하세요.**  
-> 현대적인 창의적 워크플로우를 위해 구축된 프리미엄 고성능 마인드맵 애플리케이션입니다.
+# FractFlow
+
+짧고 빠르게 생각을 연결하는 마인드맵 워크스페이스.
+모바일/데스크톱 모두에서 Markdown 기반으로 노드를 편집하고, 흐름 중심으로 정리할 수 있습니다.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![React Flow](https://img.shields.io/badge/React_Flow-11-FF0071?style=flat-square)](https://reactflow.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 
----
+## 핵심 기능
 
-## 📖 목차
-- [프로젝트 개요](#-프로젝트-개요)
-- [기술 스택](#-기술-스택)
-- [주요 기능](#-주요-기능)
-- [상세 문서](#-상세-문서)
-- [시작하기](#-시작하기)
+- 모바일 최적화 인터랙션
+  - 선택/추가/연결/크기 모드 분리
+  - 롱프레스 액션시트, 모드 힌트, 터치 우선 HUD
+  - 모바일 전용 가이드(헤더 `?`) + 코치마크
+- Markdown 노드 편집
+  - 노드 내부 Markdown 작성/렌더링
+  - 데스크톱/모바일 모두 편집 플로우 지원
+- 권한 기반 읽기 전용 모드
+  - 링크 조회는 가능
+  - 수정/삭제는 소유자만 가능 (RLS + UI 가드)
+  - 비소유자는 공유 중심 UX
+- 안정적인 저장 경험
+  - 자동 저장 + 수동 저장
+  - 헤더에서 `Syncing` / `Saved` 상태 확인
+- i18n 지원
+  - 한국어 / 영어
 
----
+## 기술 스택
 
-## 🌟 프로젝트 개요
+- Next.js 16 (App Router)
+- React Flow
+- Supabase (Auth + Postgres + RLS)
+- Zustand + TanStack Query
+- Tailwind CSS v4 + shadcn/ui
+- next-intl
+- Sonner (toast)
 
-**FractFlow**는 개인과 팀이 복잡한 아이디어를 시각적으로 정리할 수 있도록 설계된 전문가급 화이트보드 도구입니다. 무한 캔버스와 실시간 클라우드 영속성을 결합하여 브레인스토밍과 실행 사이의 원활한 가교 역할을 합니다.
+## 시작하기
 
-### ✨ 하이라이트
-- **수학적 정밀도**: 간격 없는 정렬과 픽셀 단위로 완벽한 노드 연결.
-- **글로벌 다국어 지원**: `next-intl` 기반의 **English / Korean** 완벽 지원 및 자동 언어 감지.
-- **마크다운 & 코드 지원**: 노드 내 마크다운 렌더링 및 **실시간 코드 문법 하이라이팅** 지원.
-- **마이크로 인터랙션 디자인**: 직관적인 조작을 위한 맞춤형 50/25/본체 인터랙션 모델 및 애니메이션 기반 UI.
-- **SaaS 지원 아키텍처**: 전체 다크 모드 최적화, 실시간 자동 저장 및 헤더 기반 상태 동기화.
+1. 설치
 
----
+```bash
+git clone https://github.com/yourusername/fract-flow.git
+cd fract-flow
+npm install
+```
 
-## 🛠 기술 스택
+2. 환경 변수 (`.env.local`)
 
-| 레이어 | 기술 | 용도 |
-| :--- | :--- | :--- |
-| **프론트엔드** | [Next.js 16+](https://nextjs.org/) | 고성능의 현대적인 React 프레임워크. |
-| **시각화** | [React Flow](https://reactflow.dev/) | 무한 캔버스 및 노드-엣지 관리. |
-| **다국어** | [next-intl](https://next-intl.dev/) | Type-safe한 Next.js App Router용 i18n 솔루션. |
-| **에디터** | [PrismJS](https://prismjs.com/) | 노드 내 실시간 코드 구문 분석 및 하이라이팅. |
-| **백엔드** | [Supabase](https://supabase.com/) | 실시간 데이터베이스(PostgreSQL) 및 인증(Auth). |
-| **상태 관리** | [Zustand](https://zustand-demo.pmnd.rs/) | 가볍고 견고한 클라이언트 측 상태 관리. |
-| **데이터 페칭** | [TanStack Query](https://tanstack.com/query) | 서버 상태 동기화 및 캐싱. |
-| **스타일링** | [Tailwind CSS v4](https://tailwindcss.com/) | 유틸리티 우선의 고성능 CSS. |
-| **컴포넌트** | [shadcn/ui](https://ui.shadcn.com/) | 접근성이 뛰어나고 아름답게 디자인된 UI 프리미티브. |
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+```
 
----
+3. 개발 서버 실행
 
-## 🚀 주요 기능
+```bash
+npm run dev
+```
 
-### 1. 고급 노드 인터랙션
-모든 노드는 세 개의 정밀한 영역으로 나뉩니다:
-- **중앙 50%**: 직관적인 연결을 위한 앵커 포인트.
-- **외부 25%**: 고정밀 크기 조절 핸들.
-- **본체 내부**: 클릭 및 드래그를 통한 이동 워크스페이스.
-- **실시간 편집**: 더블 클릭 시 즉각적인 마크다운 에디터 활성화 (코드 하이라이팅 포함).
+## 문서
 
-### 2. 지능형 자동 저장 & 상태 동기화
-"저장" 버튼이 따로 필요하지 않습니다. 애플리케이션은 유의미한 데이터 변경 사항을 모니터링하고 필요한 경우에만 Supabase에 동기화합니다. 현재 저장 상태(Syncing/Saved)는 상단 헤더에서 실시간으로 확인할 수 있습니다.
+- [아키텍처](./docs/ARCHITECTURE.md)
+- [인터랙션 모델](./docs/INTERACTION.md)
+- [디자인 시스템](./docs/DESIGN.md)
+- [RLS 정책 예시](./docs/security/maps-rls.sql)
 
-### 3. 글로벌 다국어 시스템 (i18n)
-사용자의 브라우저 설정을 감지하여 **한국어와 영어** 중 최적의 언어를 자동으로 제공합니다. URL 기반 라우팅을 통해 언어별 상태를 완벽하게 유지합니다.
+## 라이선스
 
-### 4. 전문가 수준의 미학
-콘텐츠에 집중할 수 있도록 불필요한 요소를 배제한 단색 슬레이트(Slate) 테마와 함께 다크/라이트 모드를 완벽하게 지원합니다. 다크 모드에서는 가독성을 위해 노드 색상이 지능적으로 조정됩니다.
-
----
-
-## 📑 상세 문서
-
-기술적 구현에 대해 더 자세히 알아보려면 다음 모듈을 살펴보세요:
-
-- [🛰️ **아키텍처 및 데이터 흐름**](./docs/ARCHITECTURE.md) - 시스템 디자인 및 로직 분석.
-- [🔗 **인터랙션 모델**](./docs/INTERACTION.md) - 50/25/본체 영역 로직 및 연결 시스템.
-- [💅 **디자인 시스템**](./docs/DESIGN.md) - 테마 일관성 및 CSS 엔지니어링.
-
----
-
-## 🏁 시작하기
-
-1. **클론 및 설치**
-   ```bash
-   git clone https://github.com/yourusername/fract-flow.git
-   npm install
-   ```
-
-2. **환경 설정**
-   `.env.local` 파일을 생성합니다:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
-   NEXT_PUBLIC_APP_URL=https://fract-flow.leeseongjun.com
-   ```
-
-   도메인을 변경했다면 아래 항목도 반드시 함께 업데이트하세요:
-   - Supabase Dashboard → Authentication → URL Configuration
-   - `Site URL`: `https://fract-flow.leeseongjun.com`
-   - `Redirect URLs`에 다음 URL 추가:
-     - `https://fract-flow.leeseongjun.com/en/auth/callback`
-     - `https://fract-flow.leeseongjun.com/ko/auth/callback`
-   - 로컬 개발용 URL도 필요 시 함께 추가:
-     - `http://localhost:3000/en/auth/callback`
-     - `http://localhost:3000/ko/auth/callback`
-
-3. **개발 서버 실행**
-   ```bash
-   npm run dev
-   ```
-
----
-
-## 📄 라이선스
 MIT © [Eden](https://github.com/eden)
