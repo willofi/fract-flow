@@ -299,10 +299,26 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   }, [canEdit, handlePermissionDenied, addNode, project, setSelectedNodeId, isTouchDevice]);
 
   const onFitViewport = useCallback(() => {
+    const resolveDimension = (value: number | string | undefined, fallback: number) => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+      return fallback;
+    };
+
+    const getNodeSize = (node: Node) => {
+      const style = node.style as { width?: number | string; height?: number | string } | undefined;
+      return {
+        width: resolveDimension(node.width ?? style?.width, 160),
+        height: resolveDimension(node.height ?? style?.height, 100),
+      };
+    };
+
     const selectedInternalNode = selectedNodeId ? getNode(selectedNodeId) : undefined;
     if (selectedInternalNode) {
-      const width = selectedInternalNode.width ?? selectedInternalNode.measured?.width ?? 160;
-      const height = selectedInternalNode.height ?? selectedInternalNode.measured?.height ?? 100;
+      const { width, height } = getNodeSize(selectedInternalNode);
       const absolute = selectedInternalNode.positionAbsolute ?? selectedInternalNode.position;
       const centerX = absolute.x + width / 2;
       const centerY = absolute.y + height / 2;
@@ -327,8 +343,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       let maxY = Number.NEGATIVE_INFINITY;
 
       for (const internalNode of internalNodes) {
-        const width = internalNode.width ?? internalNode.measured?.width ?? 160;
-        const height = internalNode.height ?? internalNode.measured?.height ?? 100;
+        const { width, height } = getNodeSize(internalNode);
         const absolute = internalNode.positionAbsolute ?? internalNode.position;
         minX = Math.min(minX, absolute.x);
         minY = Math.min(minY, absolute.y);
