@@ -2,8 +2,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Node, Edge } from 'reactflow';
 
+type AccessRole = 'owner' | 'viewer';
+
 export function useMindMap(mapId?: string) {
   const queryClient = useQueryClient();
+
+  const userQuery = useQuery({
+    queryKey: ['auth-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user ?? null;
+    },
+    staleTime: 30_000,
+  });
 
   const query = useQuery({
     queryKey: ['mind-map', mapId],
@@ -21,6 +32,15 @@ export function useMindMap(mapId?: string) {
     enabled: !!mapId,
     staleTime: 0,
   });
+
+  const accessRole: AccessRole = !mapId
+    ? 'owner'
+    : query.data?.user_id && userQuery.data?.id === query.data.user_id
+      ? 'owner'
+      : 'viewer';
+  const canEdit = accessRole === 'owner';
+  const canDelete = !!mapId && accessRole === 'owner';
+  const canShare = true as const;
 
   const saveMutation = useMutation({
     mutationFn: async ({
@@ -54,6 +74,16 @@ export function useMindMap(mapId?: string) {
         if (error) throw error;
         return data;
       } else {
+        const { data: ownerRecord, error: ownerError } = await supabase
+          .from('maps')
+          .select('user_id')
+          .eq('id', effectiveMapId)
+          .single();
+        if (ownerError) throw ownerError;
+        if (!ownerRecord || ownerRecord.user_id !== user.id) {
+          throw new Error('Only map owner can edit this map');
+        }
+
         // Update existing map
         const { data, error } = await supabase
           .from('maps')
@@ -78,6 +108,19 @@ export function useMindMap(mapId?: string) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Authentication required to delete mind maps');
+
+      const { data: ownerRecord, error: ownerError } = await supabase
+        .from('maps')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+      if (ownerError) throw ownerError;
+      if (!ownerRecord || ownerRecord.user_id !== user.id) {
+        throw new Error('Only map owner can delete this map');
+      }
+
       const { error } = await supabase
         .from('maps')
         .delete()
@@ -90,7 +133,7 @@ export function useMindMap(mapId?: string) {
     },
   });
 
-  return { ...query, save: saveMutation, deleteMap: deleteMutation };
+  return { ...query, save: saveMutation, deleteMap: deleteMutation, accessRole, canEdit, canDelete, canShare };
 }
 
 export function useListMindMaps() {

@@ -24,8 +24,13 @@ interface MindMapState {
   selectedNodeId: string | null;
   nodeActionSheetNodeId: string | null;
   editingNodeId: string | null;
-  helpOpen: boolean;
+  isNodeEditorOpen: boolean;
+  helpSheetOpen: boolean;
   hasSeenHelpV1: boolean;
+  accessRole: 'owner' | 'viewer';
+  canEdit: boolean;
+  canDelete: boolean;
+  canShare: boolean;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -38,8 +43,10 @@ interface MindMapState {
   setSelectedNodeId: (nodeId: string | null) => void;
   setNodeActionSheetNodeId: (nodeId: string | null) => void;
   setEditingNodeId: (nodeId: string | null) => void;
-  setHelpOpen: (helpOpen: boolean) => void;
+  setNodeEditorOpen: (isNodeEditorOpen: boolean) => void;
+  setHelpSheetOpen: (helpSheetOpen: boolean) => void;
   setHasSeenHelpV1: (hasSeenHelpV1: boolean) => void;
+  setAccessControl: (access: { accessRole: 'owner' | 'viewer'; canEdit: boolean; canDelete: boolean; canShare: boolean }) => void;
   addNode: (node: Node) => void;
   deleteNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
@@ -62,11 +69,17 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   selectedNodeId: null,
   nodeActionSheetNodeId: null,
   editingNodeId: null,
-  helpOpen: false,
+  isNodeEditorOpen: false,
+  helpSheetOpen: false,
   hasSeenHelpV1: false,
+  accessRole: 'owner',
+  canEdit: true,
+  canDelete: true,
+  canShare: true,
   pendingConnection: null,
   isSaving: false,
   onNodesChange: (changes: NodeChange[]) => {
+    if (!get().canEdit) return;
     const nextNodes = applyNodeChanges(changes, get().nodes);
     const hasIntentionalChange = changes.some(c => c.type === 'position' || c.type === 'remove' || c.type === 'add');
     
@@ -76,6 +89,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
   onEdgesChange: (changes: EdgeChange[]) => {
+    if (!get().canEdit) return;
     const nextEdges = applyEdgeChanges(changes, get().edges);
     const hasIntentionalChange = changes.some(c => c.type === 'remove' || c.type === 'add');
 
@@ -85,6 +99,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
   onConnect: (connection: Connection) => {
+    if (!get().canEdit) return;
     set({
       edges: addEdge(connection, get().edges),
       pendingConnection: null,
@@ -118,19 +133,27 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setEditingNodeId: (editingNodeId) => {
     set({ editingNodeId });
   },
-  setHelpOpen: (helpOpen: boolean) => {
-    set({ helpOpen });
+  setNodeEditorOpen: (isNodeEditorOpen: boolean) => {
+    set({ isNodeEditorOpen });
+  },
+  setHelpSheetOpen: (helpSheetOpen: boolean) => {
+    set({ helpSheetOpen });
   },
   setHasSeenHelpV1: (hasSeenHelpV1: boolean) => {
     set({ hasSeenHelpV1 });
   },
+  setAccessControl: ({ accessRole, canEdit, canDelete, canShare }) => {
+    set({ accessRole, canEdit, canDelete, canShare });
+  },
   addNode: (node: Node) => {
+    if (!get().canEdit) return;
     set({
       nodes: [...get().nodes, node],
       version: get().version + 1
     });
   },
   deleteNode: (nodeId: string) => {
+    if (!get().canDelete) return;
     set({
       nodes: get().nodes.filter((node) => node.id !== nodeId),
       edges: get().edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
@@ -141,6 +164,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => {
+    if (!get().canEdit) return;
     set({
       nodes: get().nodes.map((node) => {
         if (node.id === nodeId) {
@@ -152,6 +176,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
   setNodeColor: (nodeId: string, color: string) => {
+    if (!get().canEdit) return;
     set({
       nodes: get().nodes.map((node) => {
         if (node.id === nodeId) {
@@ -173,7 +198,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       selectedNodeId: null,
       nodeActionSheetNodeId: null,
       editingNodeId: null,
-      interactionMode: 'select'
+      isNodeEditorOpen: false,
+      helpSheetOpen: false,
+      interactionMode: 'select',
+      accessRole: 'owner',
+      canEdit: true,
+      canDelete: true,
+      canShare: true
     });
   },
   setPendingConnection: (pendingConnection) => {
