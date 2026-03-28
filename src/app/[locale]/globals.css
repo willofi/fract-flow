@@ -151,6 +151,31 @@
   background-color: var(--accent) !important;
 }
 
+@media (max-width: 767px) {
+  .react-flow__controls.ff-mobile-controls {
+    left: 16px !important;
+    bottom: calc(env(safe-area-inset-bottom) + 16px) !important;
+    transition: opacity 150ms ease, transform 150ms ease !important;
+  }
+
+  .react-flow__controls.ff-mobile-controls .react-flow__controls-button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .react-flow__controls.ff-mobile-controls.ff-mobile-controls--hidden {
+    opacity: 0 !important;
+    transform: translateY(12px) !important;
+    pointer-events: none !important;
+  }
+
+  .react-flow__controls.ff-mobile-controls.ff-mobile-controls--stacked {
+    left: auto !important;
+    right: 16px !important;
+    bottom: calc(env(safe-area-inset-bottom) + 86px) !important;
+  }
+}
+
 .react-flow__minimap {
   position: absolute !important;
   right: 16px !important;
@@ -205,7 +230,7 @@
   background-color: var(--background);
   border: 1.5px solid oklch(0.6 0.02 260);
   transform: translate(-50%, -50%);
-  z-index: 100;
+  z-index: 20;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s ease;

@@ -19,8 +19,11 @@ import {
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
 import { trackUXEvent } from '@/lib/ux-events';
+import { toast } from 'sonner';
+import { useLocale } from 'next-intl';
 
 export function MarkdownNode({ id, data, selected }: NodeProps) {
+  const locale = useLocale();
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(data.label || '');
   const [hoveredAnchor, setHoveredAnchor] = useState<string | null>(null);
@@ -39,6 +42,8 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   const nodes = useMindMapStore((state) => state.nodes);
   const editingNodeId = useMindMapStore((state) => state.editingNodeId);
   const setEditingNodeId = useMindMapStore((state) => state.setEditingNodeId);
+  const setNodeEditorOpen = useMindMapStore((state) => state.setNodeEditorOpen);
+  const canEdit = useMindMapStore((state) => state.canEdit);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const editorPanelRef = useRef<HTMLDivElement>(null);
@@ -51,6 +56,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   const movedDuringTouchRef = useRef(false);
   const touchedDuringGestureRef = useRef(false);
   const longPressTriggeredRef = useRef(false);
+  const permissionDeniedMessage = locale === 'ko' ? '수정 권한이 없습니다.' : "You don't have permission to edit this map.";
 
   useEffect(() => {
     latestContentRef.current = content;
@@ -74,34 +80,60 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
     return () => clearLongPress();
   }, [clearLongPress]);
 
+  useEffect(() => {
+    return () => {
+      setNodeEditorOpen(false);
+    };
+  }, [setNodeEditorOpen]);
+
   const openEditor = useCallback(() => {
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage, { id: 'permission-denied-edit' });
+      trackUXEvent('edit_blocked_not_owner', { source: 'node-editor' });
+      return;
+    }
     const nextLabel = (data.label as string) || '';
     initialEditContentRef.current = nextLabel;
     setContent(nextLabel);
     setIsEditing(true);
-  }, [data.label]);
+    setNodeEditorOpen(true);
+  }, [canEdit, data.label, permissionDeniedMessage, setNodeEditorOpen]);
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isTouchDevice) return;
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage, { id: 'permission-denied-edit' });
+      trackUXEvent('edit_blocked_not_owner', { source: 'node-double-click' });
+      return;
+    }
     openEditor();
-  }, [isTouchDevice, openEditor]);
+  }, [canEdit, isTouchDevice, openEditor, permissionDeniedMessage]);
 
   const commitEdit = useCallback(() => {
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage, { id: 'permission-denied-edit' });
+      setIsEditing(false);
+      setNodeEditorOpen(false);
+      trackUXEvent('edit_blocked_not_owner', { source: 'node-commit' });
+      return;
+    }
     const nextContent = latestContentRef.current;
     setIsEditing(false);
+    setNodeEditorOpen(false);
     if (latestLabelRef.current !== nextContent) {
       updateNodeData(id, { label: nextContent });
       trackUXEvent('node_edited', { source: isTouchDevice ? 'mobile' : 'desktop' });
     }
     initialEditContentRef.current = nextContent;
-  }, [id, updateNodeData, isTouchDevice]);
+  }, [canEdit, id, permissionDeniedMessage, updateNodeData, isTouchDevice, setNodeEditorOpen]);
 
   const cancelEdit = useCallback(() => {
     setContent(data.label || '');
     setIsEditing(false);
-  }, [data.label]);
+    setNodeEditorOpen(false);
+  }, [data.label, setNodeEditorOpen]);
 
   const requestCloseEdit = useCallback(() => {
     const isDirty = latestContentRef.current !== initialEditContentRef.current;
@@ -161,6 +193,11 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
     e.stopPropagation();
 
     if (interactionMode === 'connect') {
+      if (!canEdit) {
+        toast.error(permissionDeniedMessage, { id: 'permission-denied-edit' });
+        trackUXEvent('edit_blocked_not_owner', { source: 'connect-attempt' });
+        return;
+      }
       if (pendingConnection && pendingConnection.nodeId !== id) {
         onConnect({
           source: pendingConnection.nodeId,
@@ -178,6 +215,10 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
       return;
     }
 
+    if (!canEdit) {
+      return;
+    }
+
     if (isTouchDevice) {
       if (interactionMode !== 'select') return;
       if (touchedDuringGestureRef.current || longPressTriggeredRef.current) {
@@ -192,11 +233,16 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
       setPendingConnection(null);
       trackUXEvent('mis_tap_connect_cancelled', { source: 'node-click-non-connect' });
     }
-  }, [id, interactionMode, isTouchDevice, onConnect, pendingConnection, resolveClosestAnchor, setInteractionMode, setPendingConnection, setSelectedNodeId]);
+  }, [canEdit, id, interactionMode, isTouchDevice, onConnect, pendingConnection, permissionDeniedMessage, resolveClosestAnchor, setInteractionMode, setPendingConnection, setSelectedNodeId]);
 
   const handleHandleClick = (e: React.MouseEvent, anchorId: string) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage, { id: 'permission-denied-edit' });
+      trackUXEvent('edit_blocked_not_owner', { source: 'connect-handle' });
+      return;
+    }
     if (interactionMode !== 'connect') return;
     setSelectedNodeId(id);
     if (pendingConnection) {
@@ -225,6 +271,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
     touchedDuringGestureRef.current = false;
     movedDuringTouchRef.current = false;
     longPressTriggeredRef.current = false;
+    if (!canEdit) return;
     setSelectedNodeId(id);
     if (interactionMode !== 'select') return;
     clearLongPress();
@@ -236,7 +283,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
       trackUXEvent('action_sheet_opened', { source: 'node-longpress' });
       clearLongPress();
     }, 350);
-  }, [clearLongPress, id, interactionMode, isTouchDevice, setNodeActionSheetNodeId, setSelectedNodeId]);
+  }, [canEdit, clearLongPress, id, interactionMode, isTouchDevice, setNodeActionSheetNodeId, setSelectedNodeId]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!longPressStartRef.current) return;
@@ -254,13 +301,17 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
       clearLongPress();
       return;
     }
+    if (!canEdit) {
+      clearLongPress();
+      return;
+    }
 
     if (interactionMode !== 'connect' && !movedDuringTouchRef.current && !longPressTriggeredRef.current) {
       setSelectedNodeId(id);
     }
 
     clearLongPress();
-  }, [clearLongPress, id, interactionMode, isTouchDevice, setSelectedNodeId]);
+  }, [canEdit, clearLongPress, id, interactionMode, isTouchDevice, setSelectedNodeId]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -296,10 +347,10 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
   }, [editingNodeId, id, openEditor, setEditingNodeId]);
 
   const isSource = pendingConnection?.nodeId === id;
-  const shouldShowConnectUI = interactionMode === 'connect' && (selectedNodeId === id || isSource);
+  const shouldShowConnectUI = canEdit && interactionMode === 'connect' && (selectedNodeId === id || isSource);
   const handleThickness = shouldShowConnectUI ? 24 : 8;
   const showDesktopHoverIndicator = !isTouchDevice && interactionMode === 'connect';
-  const showResizer = (selected || selectedNodeId === id) && (!isTouchDevice || interactionMode === 'resize');
+  const showResizer = canEdit && (selected || selectedNodeId === id) && (!isTouchDevice || interactionMode === 'resize');
   const nodeSurface = (
     <div 
       ref={containerRef}
@@ -319,7 +370,8 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
       }}
       style={{ backgroundColor: data.color || 'var(--card)' }}
       className={cn(
-        "node-container group w-full h-full min-w-[80px] min-h-[32px] flex flex-col transition-all duration-300 relative overflow-visible cursor-grab active:cursor-grabbing",
+        "node-container group w-full h-full min-w-[80px] min-h-[32px] flex flex-col transition-all duration-300 relative overflow-visible",
+        canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-default",
         selected && "selected"
       )}
     >
@@ -467,7 +519,7 @@ export function MarkdownNode({ id, data, selected }: NodeProps) {
         />
       )}
 
-      {isTouchDevice ? (
+      {isTouchDevice || !canEdit ? (
         nodeSurface
       ) : (
         <ContextMenu>

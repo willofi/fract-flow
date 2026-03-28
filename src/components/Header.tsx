@@ -1,18 +1,21 @@
 'use client';
 
 import { Link } from '@/i18n/navigation';
-import { LogOut, LayoutDashboard, Plus, CloudCheck, CloudUpload, Languages, Menu, CircleHelp, Sparkles } from 'lucide-react';
+import { LogOut, LayoutDashboard, Plus, CloudCheck, CloudUpload, Languages, Menu, CircleHelp, Sparkles, ArrowLeft } from 'lucide-react';
 import { FractFlowIcon } from '@/components/icons/FractFlowIcon';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabase';
 import { useRouter, usePathname } from '@/i18n/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { useTranslations, useLocale } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { trackUXEvent } from '@/lib/ux-events';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +50,7 @@ const helpCopy = {
       'Connect ideas: enter Connect mode, pick source anchor, then tap target node.',
     ],
     mobile: [
-      'Long-press empty canvas (350ms) to add a node quickly.',
+      'Long-press empty canvas to add a node quickly.',
       'Long-press a node to open action sheet (edit, color, connect, delete).',
       'Use Resize mode for larger corner handles and safer touch resizing.',
     ],
@@ -71,7 +74,7 @@ const helpCopy = {
       '연결: 연결 모드 진입 후 소스 앵커 선택, 이후 타깃 노드를 탭.',
     ],
     mobile: [
-      '빈 캔버스를 350ms 길게 눌러 노드를 빠르게 생성할 수 있습니다.',
+      '빈 캔버스를 길게 눌러 노드를 빠르게 생성할 수 있습니다.',
       '노드를 길게 누르면 액션시트(편집/색상/연결/삭제)가 열립니다.',
       '리사이즈 모드에서는 코너 핸들이 커져 터치 조작이 쉬워집니다.',
     ],
@@ -122,12 +125,20 @@ export function Header() {
   const locale = useLocale();
   const [user, setUser] = useState<User | null>(null);
   const [helpTab, setHelpTab] = useState<HelpTab>('quick');
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isEditingMobileTitle, setIsEditingMobileTitle] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
+  const mobileTitleInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const isSaving = useMindMapStore((state) => state.isSaving);
-  const helpOpen = useMindMapStore((state) => state.helpOpen);
-  const setHelpOpen = useMindMapStore((state) => state.setHelpOpen);
+  const canEdit = useMindMapStore((state) => state.canEdit);
+  const title = useMindMapStore((state) => state.title);
+  const setTitle = useMindMapStore((state) => state.setTitle);
+  const helpSheetOpen = useMindMapStore((state) => state.helpSheetOpen);
+  const setHelpSheetOpen = useMindMapStore((state) => state.setHelpSheetOpen);
   const { setTheme } = useTheme();
 
   useEffect(() => {
@@ -160,9 +171,22 @@ export function Header() {
 
   const resolvedLocale = locale === 'ko' ? 'ko' : 'en';
   const compactActionLabelClass = isMapPage ? 'hidden min-[1025px]:inline' : 'hidden md:inline';
+  const isMobileMapPage = isMapPage && isMobileViewport;
+
+  useEffect(() => {
+    if (!isMobileMapPage || !isEditingMobileTitle) return;
+    const rafId = window.requestAnimationFrame(() => {
+      if (!mobileTitleInputRef.current) return;
+      mobileTitleInputRef.current.focus();
+      const cursor = mobileTitleInputRef.current.value.length;
+      mobileTitleInputRef.current.setSelectionRange(cursor, cursor);
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isMobileMapPage, isEditingMobileTitle]);
   const handleHelpOpenChange = (next: boolean) => {
-    setHelpOpen(next);
-    if (next) {
+    setHelpSheetOpen(next);
+    if (next && !helpSheetOpen) {
+      trackUXEvent('help_sheet_opened', { surface: isMobileViewport ? 'mobile' : 'desktop' });
       trackUXEvent('help_opened', { surface: isMobileViewport ? 'mobile' : 'desktop' });
     }
   };
@@ -175,14 +199,72 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className={`mx-auto flex h-16 w-full max-w-screen-xl items-center px-3 transition-all duration-300 md:px-6 lg:px-10 ${isMapPage ? 'xl:px-12' : 'xl:px-8'}`}>
+      <div className={`mx-auto relative flex h-16 w-full max-w-screen-xl items-center px-3 transition-all duration-300 md:px-6 lg:px-10 ${isMapPage ? 'xl:px-12' : 'xl:px-8'}`}>
+        {isMapPage && !canEdit && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+            <div className="rounded-full border border-border/50 bg-muted/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground shadow-sm backdrop-blur">
+              {resolvedLocale === 'ko' ? '읽기 전용' : 'Read only'}
+            </div>
+          </div>
+        )}
         <div className="flex min-w-0 items-center gap-3 md:gap-6">
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <FractFlowIcon className="h-7 w-7 text-primary" />
-            <span className="text-lg font-black tracking-tight uppercase sm:text-xl">FractFlow</span>
-          </Link>
+          {isMobileMapPage ? (
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={resolvedLocale === 'ko' ? '뒤로 가기' : 'Go back'}
+                  className="h-10 w-10 shrink-0 rounded-full"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <div className={cn("min-w-0 flex-1", isMobileMapPage && isEditingMobileTitle ? "border-b border-border/60" : "border-b border-transparent")}>
+                {isMobileMapPage && isEditingMobileTitle ? (
+                  <Input
+                    ref={mobileTitleInputRef}
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onBlur={() => setIsEditingMobileTitle(false)}
+                    readOnly={!canEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === 'Escape') {
+                        e.preventDefault();
+                        setIsEditingMobileTitle(false);
+                      }
+                    }}
+                    className="h-10 w-full border-none bg-transparent px-0 text-sm font-bold focus-visible:ring-0"
+                    placeholder={resolvedLocale === 'ko' ? '제목 없음' : 'Untitled Map'}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!canEdit) {
+                        toast.error(resolvedLocale === 'ko' ? '수정 권한이 없습니다.' : "You don't have permission to edit this map.", { id: 'permission-denied-edit' });
+                        return;
+                      }
+                      setIsEditingMobileTitle(true);
+                    }}
+                    className="h-10 w-full truncate bg-transparent text-left text-sm font-bold leading-10"
+                    title={title || (resolvedLocale === 'ko' ? '제목 없음' : 'Untitled Map')}
+                    aria-label={resolvedLocale === 'ko' ? '마인드맵 제목 수정' : 'Edit mind map title'}
+                  >
+                    {title || (resolvedLocale === 'ko' ? '제목 없음' : 'Untitled Map')}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+              <FractFlowIcon className="h-7 w-7 text-primary" />
+              <span className="text-lg font-black tracking-tight uppercase sm:text-xl">FractFlow</span>
+            </Link>
+          )}
           
-          {isMapPage && (
+          {isMapPage && !isMobileMapPage && canEdit && (
             <div className="flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-1 transition-all duration-300 sm:gap-2 sm:px-3">
               {isSaving ? (
                 <div className="flex items-center gap-1 sm:gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.12em] sm:tracking-widest text-primary leading-none">
@@ -202,8 +284,8 @@ export function Header() {
         <div className="flex-1" />
 
         <nav className="hidden items-center gap-2 md:flex md:gap-4">
-          {isMapPage && (
-            <Popover open={!isMobileViewport ? helpOpen : false} onOpenChange={handleHelpOpenChange}>
+          {isMapPage && !isMobileViewport && (
+            <Popover open={helpSheetOpen} onOpenChange={handleHelpOpenChange}>
               <PopoverTrigger asChild>{helpButton}</PopoverTrigger>
               <PopoverContent align="end" className="w-[360px] p-4">
                 <HelpPanel locale={resolvedLocale} tab={helpTab} onTabChange={setHelpTab} />
@@ -266,9 +348,25 @@ export function Header() {
         </nav>
 
         <nav className="md:hidden flex items-center gap-1">
-          {isMapPage && (
-            <Dialog open={isMobileViewport ? helpOpen : false} onOpenChange={handleHelpOpenChange}>
-              <Button type="button" variant="ghost" size="sm" className="w-9 px-0 rounded-full" onClick={() => handleHelpOpenChange(true)} aria-label={resolvedLocale === 'ko' ? '사용 가이드 열기' : 'Open usage guide'}>
+          {isMobileMapPage && canEdit && (
+            <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-2.5 py-1 whitespace-nowrap">
+              {isSaving ? (
+                <div className="flex items-center gap-1 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.1em] text-primary leading-none">
+                  <CloudUpload className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+                  <span className="animate-pulse whitespace-nowrap">{t('syncing')}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground/80 leading-none">
+                  <CloudCheck className="h-3.5 w-3.5 shrink-0 text-green-500/80" />
+                  <span className="whitespace-nowrap">{t('saved')}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isMapPage && isMobileViewport && (
+            <Dialog open={helpSheetOpen} onOpenChange={handleHelpOpenChange}>
+              <Button type="button" variant="ghost" size="sm" className="h-11 w-11 px-0 rounded-full" onClick={() => handleHelpOpenChange(true)} aria-label={resolvedLocale === 'ko' ? '사용 가이드 열기' : 'Open usage guide'}>
                 <CircleHelp className="h-5 w-5" />
               </Button>
               <DialogContent
@@ -285,7 +383,7 @@ export function Header() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-9 px-0">
+              <Button variant="ghost" size="sm" className="h-11 w-11 px-0" aria-label={resolvedLocale === 'ko' ? '메뉴 열기' : 'Open menu'}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Open menu</span>
               </Button>
