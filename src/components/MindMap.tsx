@@ -15,7 +15,7 @@ import 'reactflow/dist/style.css';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { useMindMap, useListMindMaps } from '@/hooks/useMindMap';
 import { Button } from '@/components/ui/button';
-import { Save, Loader2, ArrowLeft, MousePointer2, Type, Share2, Link2, Minimize2, Pencil, Palette, Trash2, Sparkles, Scan } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, MousePointer2, Type, Share2, Link2, Minimize2, Pencil, Palette, Trash2, Sparkles, Scan, MoreHorizontal } from 'lucide-react';
 import { MarkdownNode } from './nodes/MarkdownNode';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -111,7 +111,16 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   const paneLongPressTimerRef = useRef<number | null>(null);
   const paneLongPressPointRef = useRef<{ x: number; y: number } | null>(null);
   const panePanSessionRef = useRef<{ startX: number; startY: number; panStarted: boolean } | null>(null);
+  const modeHintTimerRef = useRef<number | null>(null);
+  const modeHintFadeTimerRef = useRef<number | null>(null);
+  const zoomHudDimTimerRef = useRef<number | null>(null);
+  const zoomHudHideTimerRef = useRef<number | null>(null);
   const viewerViewedTrackedRef = useRef<string | null>(null);
+  const [isUtilitySheetOpen, setIsUtilitySheetOpen] = useState(false);
+  const [modeHintMounted, setModeHintMounted] = useState(false);
+  const [modeHintVisible, setModeHintVisible] = useState(false);
+  const [modeHintDismissAt, setModeHintDismissAt] = useState<number | null>(null);
+  const [zoomHudVisibility, setZoomHudVisibility] = useState<'visible' | 'dimmed' | 'hidden'>('visible');
 
   const clearPaneLongPress = useCallback(() => {
     if (paneLongPressTimerRef.current !== null) {
@@ -124,6 +133,67 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   useEffect(() => {
     return () => clearPaneLongPress();
   }, [clearPaneLongPress]);
+
+  const clearModeHintTimer = useCallback(() => {
+    if (modeHintTimerRef.current !== null) {
+      window.clearTimeout(modeHintTimerRef.current);
+      modeHintTimerRef.current = null;
+    }
+  }, []);
+
+  const clearModeHintFadeTimer = useCallback(() => {
+    if (modeHintFadeTimerRef.current !== null) {
+      window.clearTimeout(modeHintFadeTimerRef.current);
+      modeHintFadeTimerRef.current = null;
+    }
+  }, []);
+
+  const clearZoomHudTimers = useCallback(() => {
+    if (zoomHudDimTimerRef.current !== null) {
+      window.clearTimeout(zoomHudDimTimerRef.current);
+      zoomHudDimTimerRef.current = null;
+    }
+    if (zoomHudHideTimerRef.current !== null) {
+      window.clearTimeout(zoomHudHideTimerRef.current);
+      zoomHudHideTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissModeHint = useCallback(() => {
+    clearModeHintTimer();
+    setModeHintDismissAt(null);
+    setModeHintVisible(false);
+    clearModeHintFadeTimer();
+    modeHintFadeTimerRef.current = window.setTimeout(() => {
+      setModeHintMounted(false);
+      modeHintFadeTimerRef.current = null;
+    }, 200);
+  }, [clearModeHintFadeTimer, clearModeHintTimer]);
+
+  const scheduleZoomHudIdle = useCallback(() => {
+    if (!isTouchDevice) return;
+    clearZoomHudTimers();
+    zoomHudDimTimerRef.current = window.setTimeout(() => {
+      setZoomHudVisibility((prev) => (prev === 'hidden' ? prev : 'dimmed'));
+    }, 1700);
+    zoomHudHideTimerRef.current = window.setTimeout(() => {
+      setZoomHudVisibility('hidden');
+    }, 4000);
+  }, [clearZoomHudTimers, isTouchDevice]);
+
+  const revealZoomHud = useCallback(() => {
+    if (!isTouchDevice) return;
+    setZoomHudVisibility('visible');
+    scheduleZoomHudIdle();
+  }, [isTouchDevice, scheduleZoomHudIdle]);
+
+  useEffect(() => {
+    return () => {
+      clearModeHintTimer();
+      clearModeHintFadeTimer();
+      clearZoomHudTimers();
+    };
+  }, [clearModeHintFadeTimer, clearModeHintTimer, clearZoomHudTimers]);
 
   useEffect(() => {
     const media = window.matchMedia('(hover: none), (pointer: coarse)');
@@ -329,7 +399,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       const targetZoom = Math.max(0.6, Math.min(1.8, zoomX, zoomY));
 
       setCenter(centerX, centerY, { zoom: targetZoom, duration: 350 });
-      trackUXEvent('viewport_fit', { source: 'bottom-left-zoom', scope: 'selected-node' });
+      trackUXEvent('viewport_fit', { source: isTouchDevice ? 'bottom-right-zoom' : 'bottom-left-zoom', scope: 'selected-node' });
       return;
     }
     const internalNodes = nodes
@@ -365,10 +435,10 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     } else {
       fitView({ duration: 350, padding: 0.65, maxZoom: 1.55 });
     }
-    trackUXEvent('viewport_fit', { source: 'bottom-left-zoom', scope: 'all-nodes' });
-  }, [fitView, getNode, nodes, selectedNodeId, setCenter]);
+    trackUXEvent('viewport_fit', { source: isTouchDevice ? 'bottom-right-zoom' : 'bottom-left-zoom', scope: 'all-nodes' });
+  }, [fitView, getNode, isTouchDevice, nodes, selectedNodeId, setCenter]);
 
-  const onShare = useCallback(() => {
+  const onShare = useCallback((source: 'top-bar' | 'utility-sheet' = 'top-bar') => {
     navigator.clipboard.writeText(window.location.href)
       .then(() => {
         toast.success(locale === 'ko' ? 'URL이 복사되었습니다.' : 'URL copied to clipboard.', { id: 'share-copied' });
@@ -377,9 +447,19 @@ function MindMapContent({ mapId }: { mapId?: string }) {
         toast.error(locale === 'ko' ? 'URL 복사에 실패했습니다.' : 'Failed to copy URL.');
       });
     if (accessRole === 'viewer') {
-      trackUXEvent('share_link_copied_viewer', { source: 'top-bar' });
+      trackUXEvent('share_link_copied_viewer', { source });
     }
   }, [accessRole, locale]);
+
+  const handleManualSave = useCallback(() => {
+    if (!canEdit) {
+      handlePermissionDenied('edit');
+      return;
+    }
+    save.mutate({ nodes, edges, title, targetMapId: mapId }, {
+      onError: () => handlePermissionDenied('edit'),
+    });
+  }, [canEdit, edges, handlePermissionDenied, mapId, nodes, save, title]);
 
   const onPaneContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
@@ -389,6 +469,11 @@ function MindMapContent({ mapId }: { mapId?: string }) {
   }, [canEdit, createNodeAtClientPoint, isTouchDevice]);
 
   const onPaneClick = useCallback((event: React.MouseEvent | React.TouchEvent) => {
+    if (isTouchDevice) {
+      dismissModeHint();
+      revealZoomHud();
+    }
+
     const resolvePoint = () => {
       if ('clientX' in event) return { x: event.clientX, y: event.clientY };
       const touch = event.touches[0] ?? event.changedTouches[0];
@@ -415,7 +500,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     setSelectedNodeId(null);
     setNodeActionSheetNodeId(null);
     setSelectedEdgeId(null);
-  }, [canEdit, handlePermissionDenied, interactionMode, pendingConnection, setPendingConnection, setSelectedNodeId, setNodeActionSheetNodeId, createNodeAtClientPoint]);
+  }, [canEdit, createNodeAtClientPoint, dismissModeHint, handlePermissionDenied, interactionMode, isTouchDevice, pendingConnection, revealZoomHud, setPendingConnection, setSelectedNodeId, setNodeActionSheetNodeId]);
 
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: { id: string }) => {
     event.stopPropagation();
@@ -434,6 +519,9 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
   const onPanePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (!isTouchDevice || event.pointerType !== 'touch') return;
+    dismissModeHint();
+    revealZoomHud();
+
     const target = event.target as HTMLElement;
     if (!target.closest('.react-flow__pane') || target.closest('.react-flow__node')) return;
 
@@ -456,10 +544,12 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       createNodeAtClientPoint(paneLongPressPointRef.current.x, paneLongPressPointRef.current.y, 'longpress-canvas');
       clearPaneLongPress();
     }, 350);
-  }, [canEdit, isTouchDevice, interactionMode, clearPaneLongPress, createNodeAtClientPoint]);
+  }, [canEdit, clearPaneLongPress, createNodeAtClientPoint, dismissModeHint, interactionMode, isTouchDevice, revealZoomHud]);
 
   const onPanePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (!panePanSessionRef.current) return;
+    if (isTouchDevice) revealZoomHud();
+
     const dx = Math.abs(event.clientX - panePanSessionRef.current.startX);
     const dy = Math.abs(event.clientY - panePanSessionRef.current.startY);
     const movedEnough = dx > 10 || dy > 10;
@@ -472,7 +562,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
       panePanSessionRef.current.panStarted = true;
       trackUXEvent('pane_pan_started', { source: 'touch-drag' });
     }
-  }, [clearPaneLongPress, interactionMode]);
+  }, [clearPaneLongPress, interactionMode, isTouchDevice, revealZoomHud]);
 
   const onPanePointerUp = useCallback(() => {
     if (panePanSessionRef.current?.panStarted) {
@@ -480,7 +570,10 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     }
     panePanSessionRef.current = null;
     clearPaneLongPress();
-  }, [clearPaneLongPress]);
+    if (isTouchDevice) {
+      scheduleZoomHudIdle();
+    }
+  }, [clearPaneLongPress, isTouchDevice, scheduleZoomHudIdle]);
 
   useEffect(() => {
     if (interactionMode !== 'connect' && pendingConnection) {
@@ -516,6 +609,37 @@ function MindMapContent({ mapId }: { mapId?: string }) {
     setPendingConnection,
   ]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (!isTouchDevice || !canEdit || isUtilitySheetOpen) {
+        dismissModeHint();
+        return;
+      }
+      setModeHintMounted(true);
+      clearModeHintFadeTimer();
+      setModeHintVisible(true);
+      setModeHintDismissAt(Date.now() + 2800);
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [canEdit, clearModeHintFadeTimer, dismissModeHint, interactionMode, isTouchDevice, isUtilitySheetOpen, pendingConnection]);
+
+  useEffect(() => {
+    if (!modeHintDismissAt || !modeHintVisible) return;
+    clearModeHintTimer();
+    const wait = Math.max(0, modeHintDismissAt - Date.now());
+    modeHintTimerRef.current = window.setTimeout(() => {
+      setModeHintVisible(false);
+      setModeHintDismissAt(null);
+      modeHintTimerRef.current = null;
+      clearModeHintFadeTimer();
+      modeHintFadeTimerRef.current = window.setTimeout(() => {
+        setModeHintMounted(false);
+        modeHintFadeTimerRef.current = null;
+      }, 200);
+    }, wait);
+    return () => clearModeHintTimer();
+  }, [clearModeHintFadeTimer, clearModeHintTimer, modeHintDismissAt, modeHintVisible]);
+
   const completeCoachmarks = useCallback(() => {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('ff_help_v1_seen', 'true');
@@ -534,7 +658,7 @@ function MindMapContent({ mapId }: { mapId?: string }) {
 
   const isMapReady = !isLoading || !isInitialLoad;
   const actionSheetNode = nodeActionSheetNodeId ? nodes.find((node) => node.id === nodeActionSheetNodeId) : null;
-  const isHudHidden = isTouchDevice && (Boolean(actionSheetNode) || isNodeEditorOpen);
+  const isHudHidden = isTouchDevice && (Boolean(actionSheetNode) || isNodeEditorOpen || isUtilitySheetOpen);
   const uiText = locale === 'ko'
     ? {
         modeSelect: '선택',
@@ -553,10 +677,15 @@ function MindMapContent({ mapId }: { mapId?: string }) {
         coachDone: '확인',
         addHint: '추가: 빈 공간을 클릭하세요.',
         resizeHint: '크기: 모서리를 드래그하여 조절하세요.',
+        selectHint: '선택: 빈 공간을 드래그해 화면을 이동하세요.',
         deleteEdge: '연결선 삭제',
         connectHintStart: '연결: 소스 노드를 선택하세요.',
         connectHintTarget: '연결: 타깃 노드를 선택하세요.',
         readOnly: '읽기 전용',
+        utilityTitle: '빠른 작업',
+        utilityMore: '더보기',
+        utilitySave: '저장',
+        utilityShare: '공유 링크 복사',
       }
     : {
         modeSelect: 'Select',
@@ -575,11 +704,24 @@ function MindMapContent({ mapId }: { mapId?: string }) {
         coachDone: 'Got it',
         addHint: 'Add: tap empty space to create.',
         resizeHint: 'Resize: drag corners to adjust.',
+        selectHint: 'Select: drag empty space to pan.',
         deleteEdge: 'Delete edge',
         connectHintStart: 'Connect: choose a source node.',
         connectHintTarget: 'Connect: choose a target node.',
         readOnly: 'Read only',
+        utilityTitle: 'Quick actions',
+        utilityMore: 'More actions',
+        utilitySave: 'Save',
+        utilityShare: 'Copy share link',
       };
+
+  const modeHintText = interactionMode === 'connect'
+    ? (pendingConnection ? uiText.connectHintTarget : uiText.connectHintStart)
+    : interactionMode === 'add'
+      ? uiText.addHint
+      : interactionMode === 'resize'
+        ? uiText.resizeHint
+        : uiText.selectHint;
 
   if (isLoading && isInitialLoad) {
     return (
@@ -671,29 +813,24 @@ function MindMapContent({ mapId }: { mapId?: string }) {
             </div>
           </Panel>
         )}
-        <Panel position="top-right" className={cn("flex", isTouchDevice ? "m-3 gap-2" : "m-6 gap-3")}>
+        {(!isTouchDevice || !canEdit) && (
+          <Panel position="top-right" className={cn("flex", isTouchDevice ? "m-3 gap-2" : "m-6 gap-3")}>
           <Card className="flex p-1 gap-0.5 bg-card/80 backdrop-blur-xl border-border/40 shadow-xl rounded-xl items-center">
+            {canEdit && (
+              <Button
+                onClick={handleManualSave}
+                aria-label={locale === 'ko' ? '수동 저장' : 'Save manually'}
+                disabled={save.isPending || !isMapReady || !canEdit}
+                variant="ghost"
+                size="icon"
+                className={cn("rounded-lg hover:bg-accent/50", isTouchDevice ? "h-11 w-11" : "h-9 w-9")}
+                title="Manual Save"
+              >
+                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Save className="h-4 w-4" />}
+              </Button>
+            )}
             <Button
-              onClick={() => {
-                if (!canEdit) {
-                  handlePermissionDenied('edit');
-                  return;
-                }
-                save.mutate({ nodes, edges, title, targetMapId: mapId }, {
-                  onError: () => handlePermissionDenied('edit'),
-                });
-              }}
-              aria-label={locale === 'ko' ? '수동 저장' : 'Save manually'}
-              disabled={save.isPending || !isMapReady || !canEdit}
-              variant="ghost"
-              size="icon"
-              className={cn("rounded-lg hover:bg-accent/50", isTouchDevice ? "h-11 w-11" : "h-9 w-9")}
-              title="Manual Save"
-            >
-              {save.isPending ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Save className="h-4 w-4" />}
-            </Button>
-            <Button
-              onClick={onShare}
+              onClick={() => onShare('top-bar')}
               variant="ghost"
               size="icon"
               aria-label={locale === 'ko' ? '공유 링크 복사' : 'Copy share link'}
@@ -703,7 +840,8 @@ function MindMapContent({ mapId }: { mapId?: string }) {
               <Share2 className="h-4 w-4" />
             </Button>
           </Card>
-        </Panel>
+          </Panel>
+        )}
 
         {!canEdit && (
           <Panel position="top-center" className={isTouchDevice ? "mt-3" : "mt-4"}>
@@ -713,48 +851,42 @@ function MindMapContent({ mapId }: { mapId?: string }) {
           </Panel>
         )}
 
-        {isTouchDevice && canEdit && interactionMode === 'select' && (
-          <Panel position="top-center" className="mt-3">
-            <Card className="border-primary/20 bg-card/95 px-3 py-1.5 text-[11px] font-semibold shadow-lg backdrop-blur">
-              {locale === 'ko' ? '선택 모드: 빈 공간을 드래그해 화면 이동' : 'Select mode: drag empty space to pan'}
-            </Card>
-          </Panel>
-        )}
-
-        {isTouchDevice && canEdit && interactionMode === 'connect' && (
-          <Panel position="top-center" className="mt-3">
-            <Card className="border-primary/20 bg-card/95 px-3 py-1.5 text-[11px] font-semibold shadow-lg backdrop-blur">
-              {pendingConnection ? uiText.connectHintTarget : uiText.connectHintStart}
-            </Card>
-          </Panel>
-        )}
-        {isTouchDevice && canEdit && interactionMode === 'add' && (
-          <Panel position="top-center" className="mt-3">
-            <Card className="border-primary/20 bg-card/95 px-3 py-1.5 text-[11px] font-semibold shadow-lg backdrop-blur">
-              {uiText.addHint}
-            </Card>
-          </Panel>
-        )}
-        {isTouchDevice && canEdit && interactionMode === 'resize' && (
-          <Panel position="top-center" className="mt-3">
-            <Card className="border-primary/20 bg-card/95 px-3 py-1.5 text-[11px] font-semibold shadow-lg backdrop-blur">
-              {uiText.resizeHint}
-            </Card>
+        {isTouchDevice && canEdit && modeHintMounted && !isHudHidden && (
+          <Panel position="top-center" className="mt-2 pointer-events-none">
+            <div
+              role="status"
+              aria-live="polite"
+              className={cn(
+                "max-w-[min(320px,calc(100vw-2rem))] rounded-full border border-primary/20 bg-card/95 px-3 py-1.5 text-center text-[11px] font-semibold leading-4 shadow-lg backdrop-blur transition-all duration-200 ease-out",
+                modeHintVisible ? "opacity-100 blur-0 translate-y-0" : "opacity-0 blur-[1px] -translate-y-0.5"
+              )}
+            >
+              {modeHintText}
+            </div>
           </Panel>
         )}
 
         <Panel
-          position="bottom-left"
+          position={isTouchDevice ? "top-right" : "bottom-left"}
           className={cn(
-            "pointer-events-auto relative z-[300] transition-all duration-150 ease-out before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-2xl before:bg-background before:content-['']",
-            isTouchDevice && isHudHidden ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 translate-y-0"
+            "pointer-events-auto relative z-[300] transition-all duration-150 ease-out before:pointer-events-none before:absolute before:-inset-1 before:-z-10 before:rounded-2xl before:bg-background/55 before:content-['']",
+            isTouchDevice && (isHudHidden || zoomHudVisibility === 'hidden')
+              ? "opacity-0 pointer-events-none"
+              : isTouchDevice && zoomHudVisibility === 'dimmed'
+                ? "opacity-80"
+                : "opacity-100"
           )}
           style={{
-            marginLeft: isTouchDevice ? '0.75rem' : '1rem',
-            marginBottom: isTouchDevice ? 'calc(env(safe-area-inset-bottom) + 0.5rem)' : '1rem',
+            marginLeft: isTouchDevice ? undefined : '1rem',
+            marginRight: isTouchDevice ? '0.75rem' : undefined,
+            marginTop: isTouchDevice ? 0 : undefined,
+            marginBottom: isTouchDevice ? undefined : '1rem',
+            top: isTouchDevice ? '47%' : undefined,
+            bottom: isTouchDevice ? 'auto' : undefined,
+            transform: isTouchDevice ? 'translateY(-50%)' : undefined,
           }}
         >
-          <div className="rounded-2xl bg-background p-[2px]">
+          <div className="rounded-2xl bg-background/55 p-[2px]">
             <div className={cn(
               "relative isolate flex overflow-hidden rounded-xl border border-border/50 bg-card shadow-md",
               isTouchDevice ? "flex-col" : "flex-row"
@@ -766,7 +898,10 @@ function MindMapContent({ mapId }: { mapId?: string }) {
                   "relative grid place-items-center bg-transparent transition-colors hover:bg-accent/50 active:bg-accent/60",
                   isTouchDevice ? "h-[40px] w-[40px]" : "h-9 w-9"
                 )}
-                onClick={onFitViewport}
+                onClick={() => {
+                  revealZoomHud();
+                  onFitViewport();
+                }}
               >
                 <Scan className="h-4 w-4" />
               </button>
@@ -779,8 +914,9 @@ function MindMapContent({ mapId }: { mapId?: string }) {
                   isTouchDevice ? "h-[40px] w-[40px]" : "h-9 w-9"
                 )}
                 onClick={() => {
+                  revealZoomHud();
                   zoomIn({ duration: 180 });
-                  trackUXEvent('viewport_zoom_in', { source: 'bottom-left-zoom' });
+                  trackUXEvent('viewport_zoom_in', { source: isTouchDevice ? 'bottom-right-zoom' : 'bottom-left-zoom' });
                 }}
               >
                 <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[12px] w-[12px] -translate-x-1/2 -translate-y-1/2">
@@ -797,8 +933,9 @@ function MindMapContent({ mapId }: { mapId?: string }) {
                   isTouchDevice ? "h-[40px] w-[40px]" : "h-9 w-9"
                 )}
                 onClick={() => {
+                  revealZoomHud();
                   zoomOut({ duration: 180 });
-                  trackUXEvent('viewport_zoom_out', { source: 'bottom-left-zoom' });
+                  trackUXEvent('viewport_zoom_out', { source: isTouchDevice ? 'bottom-right-zoom' : 'bottom-left-zoom' });
                 }}
               >
                 <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[12px] w-[12px] -translate-x-1/2 -translate-y-1/2">
@@ -813,10 +950,10 @@ function MindMapContent({ mapId }: { mapId?: string }) {
           <Panel
             position="bottom-center"
             className={cn(
-              "pointer-events-auto !flex-row transition-all duration-150 ease-out",
-              isHudHidden ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100 translate-y-0"
+              "pointer-events-auto !flex-row transition-opacity duration-150 ease-out",
+              isHudHidden ? "opacity-0 pointer-events-none" : "opacity-100"
             )}
-            style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+            style={{ margin: 0, marginBottom: 'calc(env(safe-area-inset-bottom) + 1.75rem)' }}
           >
             <Card className="flex flex-row flex-nowrap items-center gap-1 rounded-2xl border-border/40 bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl">
               <Button variant={interactionMode === 'select' ? 'secondary' : 'ghost'} size="sm" className="h-11 shrink-0 whitespace-nowrap px-2.5 text-[11px]" onClick={() => setInteractionMode('select')}>
@@ -835,12 +972,26 @@ function MindMapContent({ mapId }: { mapId?: string }) {
                 <Minimize2 className="h-3.5 w-3.5" />
                 {uiText.modeResize}
               </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-11 w-11 shrink-0 rounded-xl px-0"
+                aria-label={uiText.utilityMore}
+                onClick={() => {
+                  dismissModeHint();
+                  revealZoomHud();
+                  setIsUtilitySheetOpen(true);
+                }}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
             </Card>
           </Panel>
         )}
 
         {isTouchDevice && canEdit && selectedEdgeId && (
-          <Panel position="bottom-center" style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 5.3rem)' }}>
+          <Panel position="bottom-center" style={{ margin: 0, marginBottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}>
             <Button type="button" variant="destructive" size="sm" className="h-10 rounded-xl px-4" onClick={deleteSelectedEdge}>
               <Trash2 className="h-4 w-4" />
               {uiText.deleteEdge}
@@ -849,6 +1000,43 @@ function MindMapContent({ mapId }: { mapId?: string }) {
         )}
         </ReactFlow>
       </div>
+
+      <Dialog open={isUtilitySheetOpen} onOpenChange={setIsUtilitySheetOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="top-auto left-0 right-0 bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-t-2xl rounded-b-none border-x-0 border-b-0 p-4"
+        >
+          <DialogTitle className="text-sm font-bold">{uiText.utilityTitle}</DialogTitle>
+          <div className="mt-3 grid gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="h-12 rounded-xl"
+              disabled={save.isPending || !isMapReady || !canEdit}
+              onClick={() => {
+                handleManualSave();
+                setIsUtilitySheetOpen(false);
+              }}
+            >
+              {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {uiText.utilitySave}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-12 rounded-xl"
+              onClick={() => {
+                onShare('utility-sheet');
+                setIsUtilitySheetOpen(false);
+              }}
+            >
+              <Share2 className="h-4 w-4" />
+              {uiText.utilityShare}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(actionSheetNode)}
